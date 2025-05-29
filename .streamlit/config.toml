@@ -1,5 +1,0 @@
-# .streamlit/config.toml
-
-[global]
-# Set the PYTHONPATH to include the project root directory
-pythonpath = "${PYTHONPATH}"
