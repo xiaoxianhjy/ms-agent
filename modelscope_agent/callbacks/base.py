@@ -9,7 +9,7 @@ from ..llm.utils import Message
 class Callback:
 
     def on_task_begin(self, config: DictConfig, run_status: RunStatus, messages: List[Message]):
-        config.agents
+        pass
 
     def on_generate_response(self, config: DictConfig, run_status: RunStatus, messages: List[Message]):
         pass

@@ -71,10 +71,11 @@ prompt:
         ```
 servers:
 
-agents:
+callbacks:
   - when: on_generate_response
     prompt:
       system: |
-  - when:
+  - when: on_task_end
+    code: task_end_callback.py
     
     
