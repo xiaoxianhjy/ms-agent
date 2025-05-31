@@ -5,16 +5,19 @@ from modelscope_agent.callbacks.run_status import RunStatus
 from modelscope_agent.config.config import Config
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
+from modelscope_agent.tools import tool_manager
 
 
 class SimpleEngine:
 
-    def __init__(self, task_dir_or_id=None, env=None, **kwargs):
-        self.config = Config.from_task(task_dir_or_id, env)
+    def __init__(self, task_dir_or_id=None, config=None, env=None, **kwargs):
+        if task_dir_or_id is None:
+            self.config = config
+        else:
+            self.config = Config.from_task(task_dir_or_id, env)
         self.llm = LLM.from_config(self.config)
         self.callbacks = []
         self.run_status = RunStatus()
-        self.tools = {}
 
     def register_callback(self, callback: Callback):
         self.callbacks.append(callback)
@@ -24,10 +27,11 @@ class SimpleEngine:
             getattr(callback, point)(self.config, self.run_status, messages)
 
     def parallel_tool_call(self, messages: List[Message]):
-        pass
+        tools = messages[-1]['tools']
+        return tool_manager.parallel_tool_call(tools)
 
     def prepare_tools(self):
-        pass
+        tool_manager.connect()
 
     def prepare_messages(self, prompt):
         messages = [
@@ -36,7 +40,7 @@ class SimpleEngine:
         ]
         return messages
 
-    def run(self, prompt, **kwargs):
+    async def run(self, prompt, **kwargs):
         messages = self.prepare_messages(prompt)
         self.loop_callback('on_task_begin', messages)
         while not self.run_status.should_stop:

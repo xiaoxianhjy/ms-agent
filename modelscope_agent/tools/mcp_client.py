@@ -1,11 +1,12 @@
 from contextlib import AsyncExitStack
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 
 from modelscope_agent.config.env import Env
+from modelscope_agent.tools.base import Tool
 from modelscope_agent.utils import get_logger
 
 logger = get_logger()
@@ -19,9 +20,10 @@ DEFAULT_HTTP_TIMEOUT = 5
 DEFAULT_SSE_READ_TIMEOUT = 60 * 5
 
 
-class MCPClient:
+class MCPClient(Tool):
 
-    def __init__(self, mcp_config: Dict[str, Any]):
+    def __init__(self, config, mcp_config: Optional[Dict[str, Any]] = None):
+        super().__init__(config)
         self.sessions: Dict[str, ClientSession] = {}
         self.exit_stack = AsyncExitStack()
         self.mcp_config = mcp_config
@@ -111,33 +113,7 @@ class MCPClient:
                 "'url' or 'command' parameter is required for connection")
         return server_name
 
-    async def switch_server(self, server_name: str):
-        """Switch to a different connected server"""
-        if server_name not in self.sessions:
-            raise ValueError(
-                f"Server '{server_name}' not connected. Available servers: {list(self.sessions.keys())}"
-            )
-
-        self.current_server = server_name
-        print(f'Switched to server: {server_name}')
-
-        # List available tools on current server
-        response = await self.sessions[server_name].list_tools()
-        tools = response.tools
-        print('Available tools:', [tool.name for tool in tools])
-
-    async def list_servers(self):
-        """List all connected servers"""
-        if not self.sessions:
-            print('No servers connected')
-            return
-
-        print('\nConnected servers:')
-        for name in self.sessions.keys():
-            marker = '* ' if name == self.current_server else '  '
-            print(f'{marker}{name}')
-
-    async def connect_all_servers(self):
+    async def connect(self):
         assert self.mcp_config, 'MCP config is required'
         envs = Env.load_env()
         for name, server in self.mcp_config.items():
