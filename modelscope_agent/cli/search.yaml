@@ -69,6 +69,9 @@ prompt:
         ```
         ... # complete and ready-to-use code here
         ```
+
+memory:
+
 servers:
 
 callbacks:

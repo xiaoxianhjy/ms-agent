@@ -38,6 +38,7 @@ class Config:
                                     f'`config.yml` or `config.yaml`')
         envs = Env.load_env(env)
         self.update_envs(config, envs)
+        config.local_dir = task_dir_or_id
         return config
 
     @staticmethod
