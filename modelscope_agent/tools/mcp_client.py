@@ -6,7 +6,7 @@ from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 
 from modelscope_agent.config.env import Env
-from modelscope_agent.tools.base import Tool
+from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.utils import get_logger
 
 logger = get_logger()
@@ -20,7 +20,7 @@ DEFAULT_HTTP_TIMEOUT = 5
 DEFAULT_SSE_READ_TIMEOUT = 60 * 5
 
 
-class MCPClient(Tool):
+class MCPClient(ToolBase):
 
     def __init__(self, config, mcp_config: Optional[Dict[str, Any]] = None):
         super().__init__(config)

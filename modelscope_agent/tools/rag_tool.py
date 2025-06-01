@@ -2,11 +2,11 @@ import os
 
 from omegaconf import OmegaConf
 
-from modelscope_agent.tools.base import Tool
+from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.tools.mcp_client import MCPClient
 
 
-class RagTool(Tool):
+class RagTool(ToolBase):
 
     def __init__(self, config):
         super(RagTool, self).__init__(config)

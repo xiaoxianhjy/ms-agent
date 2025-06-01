@@ -1,10 +1,9 @@
 from omegaconf import DictConfig
 
-from modelscope_agent.engine.simple_engine import SimpleEngine
-from modelscope_agent.tools.base import Tool
+from modelscope_agent.tools.base import ToolBase
 
 
-class LoopTool(Tool):
+class LoopTool(ToolBase):
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
@@ -32,5 +31,6 @@ class LoopTool(Tool):
         query = tool_args['query']
         config = DictConfig(self.config)
         config.prompt.system = system
+        from modelscope_agent.engine import SimpleEngine
         engine = SimpleEngine(config=config)
         return await engine.run(query)

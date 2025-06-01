@@ -14,7 +14,8 @@ class Config:
 
     supported_config_names = ['config.json', 'config.yml', 'config.yaml']
 
-    def from_task(self, task_dir_or_id: str, env: Dict[str, str] = None) -> Union[DictConfig, ListConfig]:
+    @classmethod
+    def from_task(cls, task_dir_or_id: str, env: Dict[str, str] = None) -> Union[DictConfig, ListConfig]:
         """Read a task config file and return a config object.
 
         Args:
@@ -29,15 +30,19 @@ class Config:
             task_dir_or_id = snapshot_download(task_dir_or_id)
 
         config = None
-        for name in Config.supported_config_names:
-            config_file = os.path.join(task_dir_or_id, name)
-            if os.path.exists(config_file):
-                config = OmegaConf.load(config_file)
+        if os.path.isfile(task_dir_or_id):
+            config = OmegaConf.load(task_dir_or_id)
+            task_dir_or_id = os.path.dirname(task_dir_or_id)
+        else:
+            for name in Config.supported_config_names:
+                config_file = os.path.join(task_dir_or_id, name)
+                if os.path.exists(config_file):
+                    config = OmegaConf.load(config_file)
 
         assert config is not None, (f'Cannot find any config file in {task_dir_or_id} named `config.json`, '
                                     f'`config.yml` or `config.yaml`')
         envs = Env.load_env(env)
-        self._update_envs(config, envs)
+        cls._update_envs(config, envs)
         config.local_dir = task_dir_or_id
         return config
 
@@ -62,14 +67,15 @@ class Config:
         traverse_config(config)
         return None
 
-    def convert_mcp_servers_to_json(self):
+    @staticmethod
+    def convert_mcp_servers_to_json(config: Union[DictConfig, ListConfig]):
         """Convert the mcp servers to json mcp config."""
         servers = {
             'mcpServers': {
 
             }
         }
-        if self.config.servers:
-            for server, server_config in self.config.servers.items():
+        if config.servers:
+            for server, server_config in config.servers.items():
                 servers['mcpServers'][server] = server_config.to_json()
         return servers

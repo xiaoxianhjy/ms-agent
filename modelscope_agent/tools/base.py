@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 
-class Tool:
+class ToolBase:
 
     def __init__(self, config):
         self.config = config

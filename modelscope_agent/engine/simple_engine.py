@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from typing import List, Optional, Dict
 import sys
@@ -13,7 +14,7 @@ from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.rag.base import Rag
 from modelscope_agent.rag.utils import rag_mapping
-from modelscope_agent.tools import tool_manager
+from modelscope_agent.tools import ToolManager
 from modelscope_agent.utils.logger import logger
 
 
@@ -60,6 +61,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.run_status = RunStatus()
         self.trust_remote_code = kwargs.get('trust_remote_code', False)
         self._register_callback_from_config()
+        self.tool_manager = None
         self._prepare_tools()
         self.memory_tools = []
         self._prepare_memory()
@@ -98,13 +100,14 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
     def _parallel_tool_call(self, messages: List[Message]):
         tools = messages[-1]['tools']
-        return tool_manager.parallel_tool_call(tools)
+        return self.tool_manager.parallel_tool_call(tools)
 
     def _prepare_tools(self):
-        tool_manager.connect()
+        self.tool_manager = ToolManager(self.config)
+        asyncio.run(self.tool_manager.connect())
 
     def _cleanup_tools(self):
-        tool_manager.cleanup()
+        asyncio.run(self.tool_manager.cleanup())
 
     def _query_documents(self, query):
         if self.rag is not None:
@@ -140,16 +143,16 @@ You are a robot assistant. You will be given many tools to help you complete tas
     async def run(self, prompt, **kwargs):
         try:
             messages = self._prepare_messages(prompt)
-            self.loop_callback('on_task_begin', messages)
+            self._loop_callback('on_task_begin', messages)
             while not self.run_status.should_stop:
-                self.loop_callback('on_generate_response', messages)
+                self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)
                 self.llm.generate(messages)
-                self.loop_callback('after_generate_response', messages)
-                self.loop_callback('on_tool_call', messages)
-                self.parallel_tool_call(messages)
-                self.loop_callback('after_tool_call', messages)
-            self.loop_callback('on_task_end', messages)
+                self._loop_callback('after_generate_response', messages)
+                self._loop_callback('on_tool_call', messages)
+                self._parallel_tool_call(messages)
+                self._loop_callback('after_tool_call', messages)
+            self._loop_callback('on_task_end', messages)
         except Exception as e:
             if self.config.help:
                 logger.error(f'Runtime error, please follow the instructions:\n\n {self.config.help}')
