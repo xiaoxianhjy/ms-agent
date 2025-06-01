@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Union, List, Dict, Any
 from typing_extensions import Literal, Required, TypedDict
 from dataclasses import dataclass, asdict
@@ -9,7 +9,7 @@ class ToolCall(TypedDict, total=False):
     index: int = 0
     type: str = 'function'
     tool_name: Required[str]
-    arguments: str = None
+    arguments: str = ''
 
 
 class Tool(TypedDict, total=False):
@@ -19,7 +19,7 @@ class Tool(TypedDict, total=False):
 
     description: Required[str]
 
-    parameters: Dict[str, Any] = None
+    parameters: Dict[str, Any] = dict()
 
 # {'role': 'assistant', 'content': '', 'tool_calls': [
 #             ChatCompletionMessageToolCall(id='call_eaa1051b186744ed97f4ef', function=Function(
@@ -32,13 +32,16 @@ class Message:
 
     content: Required[Union[str, List[Dict[str, 'Message']]]]
 
-    tool_calls: List[ToolCall] = None
+    tool_calls: List[ToolCall] = field(default_factory=list)
 
     # 输出需要，输入时pop
-    reasoning_content: str = None
+    reasoning_content: str = ''
 
     # 记录模型返回的request_id，以便调试排查
-    id: str = None
+    id: str = ''
+
+    # 续写模式
+    partial: bool = False
 
     def to_dict(self):
         return asdict(self)
