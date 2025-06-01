@@ -1,5 +1,4 @@
 import concurrent
-from multiprocessing.pool import ThreadPool
 from typing import List, Tuple, Dict, Any
 
 from modelscope_agent.tools.loop_tool import LoopTool

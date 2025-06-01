@@ -67,8 +67,9 @@ def get_logger(log_file: Optional[str] = None, log_level: Optional[int] = None, 
     stream_handler = logging.StreamHandler()
     handlers = [stream_handler]
 
-    file_handler = logging.FileHandler(log_file, file_mode)
-    handlers.append(file_handler)
+    if log_file is not None:
+        file_handler = logging.FileHandler(log_file, file_mode)
+        handlers.append(file_handler)
 
     for handler in handlers:
         handler.setFormatter(logger_format)
