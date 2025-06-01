@@ -1,23 +1,25 @@
 import inspect
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 
 from omegaconf import DictConfig
 
-from modelscope_agent.utils.utils import assert_package
+from modelscope_agent.utils.utils import assert_package_exist
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 
 
 class OpenAI(LLM):
 
-    def __init__(self, config: DictConfig):
+    def __init__(self, config: DictConfig, base_url: Optional[str] = None,  api_key: Optional[str] = None):
         super().__init__(config)
-        assert_package('openai')
+        assert_package_exist('openai')
         import openai
         self.model: str = config.llm.model
+        base_url = base_url or config.llm.openai_base_url
+        api_key = api_key or config.llm.openai_api_key
         self.client = openai.OpenAI(
-            api_key=config.llm.openai_api_key,
-            base_url=config.llm.openai_base_url,
+            api_key=base_url,
+            base_url=api_key,
         )
         exclude_fields = {"model", "base_url", "api_key"}
         self.args: Dict = {k: v for k, v in OmegaConf.to_container(config.llm, resolve=True).items() if k not in exclude_fields}
