@@ -101,11 +101,15 @@ You are a robot assistant. You will be given many tools to help you complete tas
     def _cleanup_tools(self):
         tool_manager.cleanup()
 
+    def _query_documents(self):
+
+
     def _prepare_messages(self, prompt):
         messages = [
             {'system': self.config.prompt.system or self.DEFAULT_SYSTEM_EN},
             {'query': prompt or self.config.prompt.query},
         ]
+
         return messages
 
     def _prepare_memory(self):
