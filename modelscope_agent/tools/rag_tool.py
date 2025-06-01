@@ -1,17 +1,26 @@
+import os
+
+from omegaconf import OmegaConf
+
 from modelscope_agent.tools.base import Tool
+from modelscope_agent.tools.mcp_client import MCPClient
 
 
 class RagTool(Tool):
 
     def __init__(self, config):
         super(RagTool, self).__init__(config)
+        base_path = os.path.dirname(__file__)
+        mcp_file = os.path.join(base_path, 'rag.yaml')
+        config = OmegaConf.load(mcp_file)
+        self.mcp_client = MCPClient(config)
 
 
     async def connect(self):
-        pass
+        await self.mcp_client.connect()
 
     async def get_tools(self):
-        pass
+        return await self.mcp_client.get_tools()
 
     async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict):
-        pass
+        return await self.mcp_client.call_tool(server_name, tool_name, tool_args)

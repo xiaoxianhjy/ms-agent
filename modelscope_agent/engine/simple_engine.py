@@ -11,6 +11,8 @@ from modelscope_agent.config import Config
 from modelscope_agent.engine.memory import memory_mapping
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
+from modelscope_agent.rag.base import Rag
+from modelscope_agent.rag.utils import rag_mapping
 from modelscope_agent.tools import tool_manager
 
 
@@ -60,6 +62,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self._prepare_tools()
         self.memory_tools = []
         self._prepare_memory()
+        self.rag = None
+        self._prepare_rag()
         atexit.register(self._cleanup_tools)
 
     def register_callback(self, callback: Callback):
@@ -101,15 +105,18 @@ You are a robot assistant. You will be given many tools to help you complete tas
     def _cleanup_tools(self):
         tool_manager.cleanup()
 
-    def _query_documents(self):
-
+    def _query_documents(self, query):
+        if self.rag is not None:
+            return query + self.rag.search_documents(query)
+        else:
+            return query
 
     def _prepare_messages(self, prompt):
         messages = [
-            {'system': self.config.prompt.system or self.DEFAULT_SYSTEM_EN},
-            {'query': prompt or self.config.prompt.query},
+            {'role': 'system', 'content': self.config.prompt.system or self.DEFAULT_SYSTEM_EN},
+            {'role': 'user', 'content': prompt or self.config.prompt.query},
         ]
-
+        messages['query'] = self._query_documents(messages[1]['content'])
         return messages
 
     def _prepare_memory(self):
@@ -118,6 +125,11 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 assert _memory in memory_mapping, (f'{_memory} not in memory_mapping, '
                                                    f'which supports: {list(memory_mapping.keys())}')
                 self.memory_tools.append(memory_mapping[_memory]())
+
+    def _prepare_rag(self):
+        if self.config.rag:
+            assert self.config.rag in rag_mapping
+            self.rag: Rag = rag_mapping(self.config.rag)()
 
     def _refine_memory(self, messages: List[Message]):
         for memory_tool in self.memory_tools:
