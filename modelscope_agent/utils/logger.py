@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from types import MethodType
 from typing import Optional
 
-from modelscope.utils.logger import get_logger as get_ms_logger
+# from modelscope.utils.logger import get_logger as get_ms_logger
 
 
 init_loggers = {}
@@ -84,12 +84,12 @@ def get_logger(log_file: Optional[str] = None, log_level: Optional[int] = None, 
 
 
 logger = get_logger()
-ms_logger = get_ms_logger()
+# ms_logger = get_ms_logger()
 
 logger.handlers[0].setFormatter(logger_format)
-ms_logger.handlers[0].setFormatter(logger_format)
+# ms_logger.handlers[0].setFormatter(logger_format)
 log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-ms_logger.setLevel(log_level)
+# ms_logger.setLevel(log_level)
 
 
 @contextmanager
