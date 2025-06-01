@@ -3,7 +3,6 @@ from typing import Literal, Union, List, Dict
 from typing_extensions import Literal, Required, TypedDict
 
 
-@dataclass
 class Message(TypedDict, total=False):
 
     role: Required[Literal['system', 'user', 'assistant', 'tool']]

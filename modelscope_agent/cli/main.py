@@ -10,7 +10,7 @@ from swift.utils import get_logger
 logger = get_logger()
 
 ROUTE_MAPPING: Dict[str, str] = {
-    'search': 'swift.cli.pt',
+    'search': 'modelscopeagent.cli.search',
 }
 
 

@@ -1,10 +1,11 @@
 import inspect
-from typing import Any
+from typing import Any, List
 
 from omegaconf import DictConfig
 
 from modelscope_agent.utils.utils import assert_package
 from .llm import LLM
+from .utils import Message
 
 
 class OpenAI(LLM):
@@ -18,7 +19,7 @@ class OpenAI(LLM):
             base_url=config.llm.openai_api_base_url,
         )
 
-    def generate(self, messages, model, tools=None, **kwargs) -> Any:
+    def generate(self, model, messages, tools=None, **kwargs) -> Any:
         parameters = inspect.signature(self.client.chat.completions.create).parameters
         kwargs = {key: value for key, value in kwargs.items() if key in parameters}
         completion = self.client.chat.completions.create(
@@ -28,4 +29,10 @@ class OpenAI(LLM):
             **kwargs
         )
         return completion
+
+    def format_message(self, messages: List[Message]):
+        openai_messages = []
+        for message in messages:
+            message = message.to_dict()
+
 

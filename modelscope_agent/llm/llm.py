@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from omegaconf import DictConfig
 
 from modelscope_agent.config.config import Config
-from modelscope_agent.schemas import Message
+from modelscope_agent.llm.utils import Message
 
 
 class LLM:
@@ -18,7 +18,7 @@ class LLM:
         self.config = config
 
     @abstractmethod
-    def generate(self, messages, tools=None, **kwargs) -> Any:
+    def generate(self, model, messages, tools=None, **kwargs) -> Any:
         """Generate response by the given messages.
 
         Args:
@@ -60,7 +60,3 @@ class LLM:
         from .model_mapping import all_services_mapping
         assert config.llm.service in all_services_mapping
         return all_services_mapping[config.llm.service](config)
-
-    @abstractmethod
-    def from_message(self, messages: List[Message]):
-        pass
