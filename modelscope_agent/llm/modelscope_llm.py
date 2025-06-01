@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 
 from modelscope_agent.utils.utils import assert_package
-from .openai import OpenAI
+from modelscope_agent.llm.openai import OpenAI
 
 
 class ModelScope(OpenAI):

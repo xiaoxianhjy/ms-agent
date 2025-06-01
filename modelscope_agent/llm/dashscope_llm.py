@@ -2,9 +2,10 @@ import inspect
 from typing import Any
 
 from modelscope_agent.utils.llm_utils import retry
+from modelscope_agent.llm.llm import LLM
 
 
-class DashScope:
+class DashScope(LLM):
 
     def __init__(self, system):
         self.system = system
