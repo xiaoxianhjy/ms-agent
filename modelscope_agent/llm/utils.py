@@ -13,7 +13,7 @@ class Tool(TypedDict, total=False):
 
     description: Required[str]
 
-    arguments: Dict[str, Any] = None
+    parameters: Dict[str, Any] = None
 
 
 @dataclass
