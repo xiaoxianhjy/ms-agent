@@ -1,5 +1,5 @@
 servers:
-  - name: "ragdocs"
+  ragdocs:
     command: "node"
     args:
       - "@mcpservers/ragdocs"

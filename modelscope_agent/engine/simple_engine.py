@@ -14,6 +14,7 @@ from modelscope_agent.llm.utils import Message
 from modelscope_agent.rag.base import Rag
 from modelscope_agent.rag.utils import rag_mapping
 from modelscope_agent.tools import tool_manager
+from modelscope_agent.utils.logger import logger
 
 
 class SimpleEngine:
@@ -137,14 +138,19 @@ You are a robot assistant. You will be given many tools to help you complete tas
         return messages
 
     async def run(self, prompt, **kwargs):
-        messages = self._prepare_messages(prompt)
-        self.loop_callback('on_task_begin', messages)
-        while not self.run_status.should_stop:
-            self.loop_callback('on_generate_response', messages)
-            messages = self._refine_memory(messages)
-            self.llm.generate(messages)
-            self.loop_callback('after_generate_response', messages)
-            self.loop_callback('on_tool_call', messages)
-            self.parallel_tool_call(messages)
-            self.loop_callback('after_tool_call', messages)
-        self.loop_callback('on_task_end', messages)
+        try:
+            messages = self._prepare_messages(prompt)
+            self.loop_callback('on_task_begin', messages)
+            while not self.run_status.should_stop:
+                self.loop_callback('on_generate_response', messages)
+                messages = self._refine_memory(messages)
+                self.llm.generate(messages)
+                self.loop_callback('after_generate_response', messages)
+                self.loop_callback('on_tool_call', messages)
+                self.parallel_tool_call(messages)
+                self.loop_callback('after_tool_call', messages)
+            self.loop_callback('on_task_end', messages)
+        except Exception as e:
+            if self.config.help:
+                logger.error(f'Runtime error, please follow the instructions:\n\n {self.config.help}')
+            raise e

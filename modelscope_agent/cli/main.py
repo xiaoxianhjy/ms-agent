@@ -1,16 +1,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import importlib.util
-import os
 import subprocess
 import sys
-from typing import Dict, List, Optional
-
-from swift.utils import get_logger
-
-logger = get_logger()
+from typing import Dict, Optional
 
 ROUTE_MAPPING: Dict[str, str] = {
-    'search': 'modelscopeagent.cli.search',
+    'search': 'modelscope_agent.cli.search',
 }
 
 

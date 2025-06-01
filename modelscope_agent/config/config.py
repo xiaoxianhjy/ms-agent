@@ -37,12 +37,12 @@ class Config:
         assert config is not None, (f'Cannot find any config file in {task_dir_or_id} named `config.json`, '
                                     f'`config.yml` or `config.yaml`')
         envs = Env.load_env(env)
-        self.update_envs(config, envs)
+        self._update_envs(config, envs)
         config.local_dir = task_dir_or_id
         return config
 
     @staticmethod
-    def update_envs(config: Union[DictConfig, ListConfig], envs: Dict[str, str]=None):
+    def _update_envs(config: Union[DictConfig, ListConfig], envs: Dict[str, str]=None):
         if not envs:
             return config
 
@@ -62,6 +62,14 @@ class Config:
         traverse_config(config)
         return None
 
+    def convert_mcp_servers_to_json(self):
+        """Convert the mcp servers to json mcp config."""
+        servers = {
+            'mcpServers': {
 
-
-
+            }
+        }
+        if self.config.servers:
+            for server, server_config in self.config.servers.items():
+                servers['mcpServers'][server] = server_config.to_json()
+        return servers
