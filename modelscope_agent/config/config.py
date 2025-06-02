@@ -1,4 +1,6 @@
+import argparse
 import os.path
+from copy import deepcopy
 from typing import Dict, Union, Any
 
 from modelscope import snapshot_download
@@ -42,13 +44,28 @@ class Config:
         assert config is not None, (f'Cannot find any config file in {task_dir_or_id} named `config.json`, '
                                     f'`config.yml` or `config.yaml`')
         envs = Env.load_env(env)
-        cls._update_envs(config, envs)
+        cls._update_config(config, envs)
+        _dict_config = cls.parse_args()
+        cls._update_config(config, _dict_config)
         config.local_dir = task_dir_or_id
         return config
 
     @staticmethod
-    def _update_envs(config: Union[DictConfig, ListConfig], envs: Dict[str, str]=None):
-        if not envs:
+    def parse_args():
+        arg_parser = argparse.ArgumentParser()
+        args, unknown = arg_parser.parse_known_args()
+        _dict_config = {}
+        if unknown:
+            for idx in range(0, len(unknown), 2):
+                key = unknown[idx]
+                value = unknown[idx + 1]
+                assert key.startswith('--'), f'Parameter not correct: {unknown}'
+                _dict_config[key[2:]] = value
+        return _dict_config
+
+    @staticmethod
+    def _update_config(config: Union[DictConfig, ListConfig], extra: Dict[str, str]=None):
+        if not extra:
             return config
 
         def traverse_config(_config: Union[DictConfig, ListConfig, Any]):
@@ -57,13 +74,25 @@ class Config:
                     if isinstance(value, BaseContainer):
                         traverse_config(value)
                     else:
-                        if name in envs:
-                            logger.info(f'Replacing {name} with the value in your environment variables.')
-                            setattr(_config, name, envs[name])
+                        if name in extra:
+                            logger.info(f'Replacing {name} with extra value.')
+                            setattr(_config, name, extra[name])
+                        if (isinstance(value, str) and value.startswith('<') and
+                                value.endswith('>') and value[1:-1] in extra):
+                            logger.info(f'Replacing {value} with extra value.')
+                            setattr(_config, name, extra[name])
+
             elif isinstance(_config, ListConfig):
-                for value in _config:
+                for idx in range(len(_config)):
+                    value = _config[idx]
                     if isinstance(value, BaseContainer):
                         traverse_config(value)
+                    else:
+                        if (isinstance(value, str) and value.startswith('<') and
+                                value.endswith('>') and value[1:-1] in extra):
+                            logger.info(f'Replacing {value} with extra value.')
+                            _config[idx] = extra[value[1:-1]]
+
         traverse_config(config)
         return None
 
@@ -77,5 +106,5 @@ class Config:
         }
         if config.servers:
             for server, server_config in config.servers.items():
-                servers['mcpServers'][server] = server_config.to_json()
+                servers['mcpServers'][server] = deepcopy(server_config)
         return servers

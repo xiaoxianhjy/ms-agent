@@ -14,13 +14,13 @@ class ToolManager:
         self.loop_tool = LoopTool(config)
         self.extra_tools: List[ToolBase] = []
         self._tool_index = {}
-        asyncio.run(self.reindex_tool())
 
     async def connect(self):
         await self.mcp_client.connect()
         await self.loop_tool.connect()
         for tool in self.extra_tools:
             await tool.connect()
+        asyncio.run(self.reindex_tool())
 
     async def cleanup(self):
         await self.mcp_client.cleanup()
@@ -32,8 +32,8 @@ class ToolManager:
 
         def extend_tool(tool_ins: ToolBase, server_name: str, tool_list: List):
             for tool in tool_list:
-                assert tool['name'] not in self._tool_index, f'Tool name duplicated {tool["name"]}'
-                self._tool_index[tool['name']] = (tool_ins, server_name, tool)
+                assert tool.name not in self._tool_index, f'Tool name duplicated {tool.name}'
+                self._tool_index[tool.name] = (tool_ins, server_name, tool)
 
         mcps = await self.mcp_client.get_tools()
         for server_name, tool_list in mcps.items():

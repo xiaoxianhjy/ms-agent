@@ -1,15 +1,13 @@
 import inspect
-
 from typing import Any, List, Dict, Optional, Generator
 
-from grpc.framework.interfaces.base.utilities import completion
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
+from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 
-from modelscope_agent.utils.utils import assert_package_exist
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message, Tool, ToolCall
+from modelscope_agent.utils.utils import assert_package_exist
 
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 
 def _stream_generator() -> Generator[Message, None, None]:
     pass

@@ -18,6 +18,8 @@ servers:
   crawl4ai:
     command: "uv"
     args:
+      - run
+      - <crawl4ai_script>
 
   web-search:
     command: "npx"
@@ -25,9 +27,9 @@ servers:
       - "-y"
       - "tavily-mcp@0.1.4"
     env:
-      - TAVILY_API_KEY:
+      TAVILY_API_KEY:
     disabled: false
-    autoApprove:
+    autoApprove: []
     exclude:
       - tavily-extract
 
@@ -35,6 +37,8 @@ servers:
     command: "npx"
     args:
       - "edgeone-pages-mcp"
+    exclude:
+      - deploy_folder_or_zip
 
 help: |
   This search agent uses the following mcp servers:
@@ -48,9 +52,9 @@ help: |
     https://app.tavily.com/home
   3. Add `modelscope_api_key` to your env variable, you can create one from:
     https://www.modelscope.cn/my/myaccesstoken
-  4. Run `modelscope_api_key=xxx TAVILY_API_KEY=xxx modelscope-agent search --servers.crawl4ai.args /your/path/to/mcp-central/mcp_central/crawl4ai/server.py`
+  4. Run `modelscope_api_key=xxx TAVILY_API_KEY=xxx modelscope-agent search --crawl4ai_script /your/path/to/mcp-central/mcp_central/crawl4ai/server.py`
   5. If you want to change models, you can add more arguments:
-    - --llm.model xxx 
+    - --model xxx 
   
 
 

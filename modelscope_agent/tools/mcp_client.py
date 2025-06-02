@@ -1,10 +1,11 @@
 from contextlib import AsyncExitStack
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, List
 
-from mcp import ClientSession, StdioServerParameters
+from mcp import ClientSession, StdioServerParameters, ListToolsResult
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 
+from modelscope_agent.config import Config
 from modelscope_agent.config.env import Env
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.utils import get_logger
@@ -26,7 +27,10 @@ class MCPClient(ToolBase):
         super().__init__(config)
         self.sessions: Dict[str, ClientSession] = {}
         self.exit_stack = AsyncExitStack()
-        self.mcp_config = mcp_config
+        self.mcp_config = Config.convert_mcp_servers_to_json(config)
+        self._exclude_functions = {}
+        if mcp_config is not None:
+            self.mcp_config.update(mcp_config)
 
     async def call_tool(self, server_name: str, tool_name: str,
                         tool_args: dict):
@@ -45,11 +49,17 @@ class MCPClient(ToolBase):
         for key, session in self.sessions.items():
             tools[key] = []
             response = await session.list_tools()
-            tools[key].extend(response.tools)
+            _session_tools = response.tools
+            exclude = []
+            if key in self._exclude_functions:
+                exclude = self._exclude_functions[key]
+            _session_tools = [t for t in _session_tools if t.name not in exclude]
+            tools[key].extend(_session_tools)
         return tools
 
     @staticmethod
-    def print_tools(server_name: str, tools: Dict):
+    def print_tools(server_name: str, tools: ListToolsResult):
+        tools = tools.tools
         if len(tools) > 10:
             tools = [tool.name for tool in tools][:10]
             logger.info(f'\nConnected to server "{server_name}" '
@@ -116,14 +126,16 @@ class MCPClient(ToolBase):
     async def connect(self):
         assert self.mcp_config, 'MCP config is required'
         envs = Env.load_env()
-        for name, server in self.mcp_config.items():
-            cmd = server['cmd']
-            env_dict = cmd.pop('env', {})
+        mcp_config = self.mcp_config['mcpServers']
+        for name, server in mcp_config.items():
+            env_dict = server.pop('env', {})
             env_dict = {
                 key: value if value else envs.get(key, '')
                 for key, value in env_dict.items()
             }
-            await self.connect_to_server(server_name=name, env=env_dict, **cmd)
+            if 'exclude' in server:
+                self._exclude_functions[name] = server.pop('exclude')
+            await self.connect_to_server(server_name=name, env=env_dict, **server)
 
     async def cleanup(self):
         """Clean up resources"""

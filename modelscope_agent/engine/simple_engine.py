@@ -74,25 +74,26 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.callbacks.append(callback)
 
     def _register_callback_from_config(self):
-        local_dir = self.config.local_dir
-        for _callback in self.config.callbacks:
-            if _callback.endswith('.py'):
-                if not self.trust_remote_code:
-                    raise AssertionError(f'Your config file contains external code, '
-                                         f'instantiate the code may be UNSAFE, if you trust the code, '
-                                         f'please pass `trust_remote_code=True` or `--trust_remote_code true`')
-                if sys.path[0] != local_dir:
-                    assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
-                    sys.path.insert(0, local_dir)
-                callback_file = importlib.import_module(_callback[:-3])
-                module_classes = {name: cls for name, cls in inspect.getmembers(callback_file, inspect.isclass)}
-                for name, cls in module_classes.items():
-                    # Find cls which base class is `Callback`
-                    if cls.__base__[0] is Callback:
-                        self.callbacks.append(cls())
-            else:
-                assert _callback in callbacks_mapping
-                self.callbacks.append(callbacks_mapping[_callback]())
+        local_dir = self.config.local_dir if hasattr(self.config, 'local_dir') else None
+        if hasattr(self.config, 'callbacks'):
+            for _callback in self.config.callbacks:
+                if _callback.endswith('.py'):
+                    if not self.trust_remote_code:
+                        raise AssertionError(f'Your config file contains external code, '
+                                             f'instantiate the code may be UNSAFE, if you trust the code, '
+                                             f'please pass `trust_remote_code=True` or `--trust_remote_code true`')
+                    if sys.path[0] != local_dir:
+                        assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
+                        sys.path.insert(0, local_dir)
+                    callback_file = importlib.import_module(_callback[:-3])
+                    module_classes = {name: cls for name, cls in inspect.getmembers(callback_file, inspect.isclass)}
+                    for name, cls in module_classes.items():
+                        # Find cls which base class is `Callback`
+                        if cls.__base__[0] is Callback:
+                            self.callbacks.append(cls())
+                else:
+                    assert _callback in callbacks_mapping
+                    self.callbacks.append(callbacks_mapping[_callback]())
 
     def _loop_callback(self, point, messages: List[Message]):
         for callback in self.callbacks:
@@ -120,18 +121,18 @@ You are a robot assistant. You will be given many tools to help you complete tas
             {'role': 'system', 'content': self.config.prompt.system or self.DEFAULT_SYSTEM_EN},
             {'role': 'user', 'content': prompt or self.config.prompt.query},
         ]
-        messages['query'] = self._query_documents(messages[1]['content'])
+        messages[1]['content'] = self._query_documents(messages[1]['content'])
         return messages
 
     def _prepare_memory(self):
-        if self.config.memory:
+        if hasattr(self.config, 'memory') and self.config.memory:
             for _memory in self.config.memory:
                 assert _memory in memory_mapping, (f'{_memory} not in memory_mapping, '
                                                    f'which supports: {list(memory_mapping.keys())}')
                 self.memory_tools.append(memory_mapping[_memory]())
 
     def _prepare_rag(self):
-        if self.config.rag:
+        if hasattr(self.config, 'rag') and self.config.rag:
             assert self.config.rag in rag_mapping
             self.rag: Rag = rag_mapping(self.config.rag)()
 
