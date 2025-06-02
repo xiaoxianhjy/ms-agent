@@ -161,6 +161,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 self._loop_callback('on_tool_call', messages)
                 if messages[-1].tool_calls:
                     await self._parallel_tool_call(messages)
+                else:
+                    self.run_status.should_stop = True
                 self._loop_callback('after_tool_call', messages)
             self._loop_callback('on_task_end', messages)
         except Exception as e:
