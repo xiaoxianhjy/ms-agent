@@ -26,9 +26,9 @@ class OpenAI(LLM):
             base_url=base_url,
         )
         exclude_fields = {"model", "base_url", "api_key"}
-        self.args: Dict = {k: v for k, v in OmegaConf.to_container(config.llm, resolve=True).items() if k not in exclude_fields}
+        self.args: Dict = {k: v for k, v in OmegaConf.to_container(getattr(config, 'generation_config', {}), resolve=True).items() if k not in exclude_fields}
 
-    def generate(self, messages: List[Message], tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
+    def generate(self, messages: List[Message], model: Optional[str] = None, tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
         parameters = inspect.signature(self.client.chat.completions.create).parameters
         args = self.args.copy()
         args.update(kwargs)
@@ -47,17 +47,17 @@ class OpenAI(LLM):
                     }
                 } for tool in tools
             ]
-        completion = self._call_llm(messages, tools, **args)
+        completion = self._call_llm(model or self.model, messages, tools, **args)
 
         if stream:
             return self.stream_continue_generate(completion)
         else:
             return self.continue_generate(messages, completion, tools, **args)
 
-    def _call_llm(self, messages, tools, **kwargs):
+    def _call_llm(self, model, messages, tools, **kwargs):
         messages = self.format_input_message(messages)
         return self.client.chat.completions.create(
-            model=self.model,
+            model=model,
             messages=messages,
             tools=tools,
             **kwargs

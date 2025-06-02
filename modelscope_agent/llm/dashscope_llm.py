@@ -1,5 +1,5 @@
 import inspect
-from typing import Any
+from typing import Any, Optional
 
 from modelscope_agent.utils.llm_utils import retry
 from modelscope_agent.llm.llm import LLM
@@ -15,7 +15,7 @@ class DashScope(LLM):
         )
 
     @retry(max_attempts=5)
-    def generate(self, messages, model, tools=None, **kwargs) -> Any:
+    def generate(self, messages, model: Optional[str] = None, tools=None, **kwargs) -> Any:
         _e = None
         parameters = inspect.signature(self.client.chat.completions.create).parameters
         kwargs = {key: value for key, value in kwargs.items() if key in parameters}

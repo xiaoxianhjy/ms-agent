@@ -8,6 +8,8 @@ generation_config:
   top_p: 0.8
   temperature: 0.5
   top_k: 50
+  extra_body:
+    enable_thinking: false
 
 prompt:
   system:

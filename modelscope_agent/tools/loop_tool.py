@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 
+from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
-from modelscope_agent.tools.utils import ToolField
 
 
 class LoopTool(ToolBase):
@@ -17,14 +17,17 @@ class LoopTool(ToolBase):
 
     async def get_tools(self):
         return {
-            'split_complex_task': [ToolField(
-                name='split_to_sub_task',
+            'split_complex_task': [Tool(
+                tool_name='split_to_sub_task',
+                server_name='split_complex_task',
                 description='Split complex task into sub tasks, for example, split a website generation task into sub tasks, '
                                'you plan the framework, include code files and classes and functions, and give the detail '
                                'information to the system and query field of the subtask, then '
                                'let each subtask to write a single file',
-                input_schema='system: str, The system prompt to use in this sub task. \n'
-                                'query: str, The specific query in this sub task. \n',
+                parameters={
+                    'system': 'str type, The system prompt to use in this sub task.',
+                    'query': 'str type, The specific query in this sub task.'
+                }
         )]
         }
 

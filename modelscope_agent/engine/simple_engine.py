@@ -61,7 +61,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.run_status = RunStatus()
         self.trust_remote_code = kwargs.get('trust_remote_code', False)
         self._register_callback_from_config()
-        self.tool_manager = None
+        self.tool_manager: ToolManager = None
         self._prepare_tools()
         self.memory_tools = []
         self._prepare_memory()
@@ -100,8 +100,14 @@ You are a robot assistant. You will be given many tools to help you complete tas
             getattr(callback, point)(self.config, self.run_status, messages)
 
     def _parallel_tool_call(self, messages: List[Message]):
-        tools = messages[-1]['tools']
-        return self.tool_manager.parallel_tool_call(tools)
+        tool_call_result = self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
+        assert len(tool_call_result) == len(messages[-1].tool_calls)
+        _new_message = Message(
+            role='tool',
+            content=tool_call_result[0], # TODO
+            tool_call_id=messages[-1].tool_calls[0].id
+        )
+        messages.append(_new_message)
 
     def _prepare_tools(self):
         self.tool_manager = ToolManager(self.config)
@@ -118,10 +124,10 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
     def _prepare_messages(self, prompt):
         messages = [
-            {'role': 'system', 'content': self.config.prompt.system or self.DEFAULT_SYSTEM_EN},
-            {'role': 'user', 'content': prompt or self.config.prompt.query},
+            Message(role='system', content=self.config.prompt.system or self.DEFAULT_SYSTEM_EN),
+            Message(role='user', content=prompt or self.config.prompt.query),
         ]
-        messages[1]['content'] = self._query_documents(messages[1]['content'])
+        messages[1].content = self._query_documents(messages[1].content)
         return messages
 
     def _prepare_memory(self):
@@ -148,10 +154,13 @@ You are a robot assistant. You will be given many tools to help you complete tas
             while not self.run_status.should_stop:
                 self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)
-                self.llm.generate(messages)
+                tools = await self.tool_manager.get_tools()
+                _response_message = self.llm.generate(messages, tools=tools)
+                messages.append(_response_message)
                 self._loop_callback('after_generate_response', messages)
                 self._loop_callback('on_tool_call', messages)
-                self._parallel_tool_call(messages)
+                if messages[-1].tool_calls:
+                    await self._parallel_tool_call(messages)
                 self._loop_callback('after_tool_call', messages)
             self._loop_callback('on_task_end', messages)
         except Exception as e:

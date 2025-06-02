@@ -10,5 +10,5 @@ if __name__ == '__main__':
     cur_dir = os.path.dirname(cur_file)
     config = Config.from_task(os.path.join(cur_dir, 'search.yaml'))
     engine = SimpleEngine(config=config)
-    query = input('>>>Please input the query')
+    query = '给我搜搜科比一共有多少总冠军戒指' # input('>>>Please input the query')
     asyncio.run(engine.run(query))

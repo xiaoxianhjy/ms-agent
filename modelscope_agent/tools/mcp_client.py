@@ -7,6 +7,7 @@ from mcp.client.stdio import stdio_client
 
 from modelscope_agent.config import Config
 from modelscope_agent.config.env import Env
+from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.utils import get_logger
 
@@ -54,6 +55,10 @@ class MCPClient(ToolBase):
             if key in self._exclude_functions:
                 exclude = self._exclude_functions[key]
             _session_tools = [t for t in _session_tools if t.name not in exclude]
+            _session_tools = [Tool(tool_name=t.name,
+                                   server_name=key,
+                                   description=t.description,
+                                   parameters=t.inputSchema) for t in _session_tools]
             tools[key].extend(_session_tools)
         return tools
 

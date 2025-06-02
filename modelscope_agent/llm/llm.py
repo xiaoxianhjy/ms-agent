@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from omegaconf import DictConfig
 
@@ -18,7 +18,7 @@ class LLM:
         self.config = config
 
     @abstractmethod
-    def generate(self, model, messages, tools=None, **kwargs) -> Any:
+    def generate(self, messages, model: Optional[str] = None, tools=None, **kwargs) -> Any:
         """Generate response by the given messages.
 
         Args:
