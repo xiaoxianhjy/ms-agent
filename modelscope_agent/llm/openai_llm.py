@@ -9,8 +9,6 @@ from modelscope_agent.llm.utils import Message, Tool, ToolCall
 from modelscope_agent.utils.utils import assert_package_exist
 
 
-def _stream_generator() -> Generator[Message, None, None]:
-    pass
 
 class OpenAI(LLM):
 
@@ -49,8 +47,9 @@ class OpenAI(LLM):
             ]
         completion = self._call_llm(model or self.model, messages, tools, **args)
 
+        # 考虑到复杂任务可能存在 单次调用llm生成不完整的情况。需要调用continue_gen判断是否应多次调用以获得完整输出
         if stream:
-            return self.stream_continue_generate(completion)
+            return self.stream_continue_generate(messages, completion, tools, **args)
         else:
             return self.continue_generate(messages, completion, tools, **args)
 
@@ -63,8 +62,77 @@ class OpenAI(LLM):
             **kwargs
         )
 
+    def _stream_continue_generate(self, messages: List[Message], new_message, tools: List[Tool] = None, **kwargs):
+        # 如果上一条消息也和new_message一样不完整，则进行拼接
+        if messages and messages[-1].to_dict().get('partial', False):
+            # 更新最后一条消息的内容
+            messages[-1].reasoning_content += new_message.reasoning_content
+            messages[-1].content += new_message.content
+            if new_message.tool_calls:
+                if messages[-1].tool_calls:
+                    messages[-1].tool_calls += new_message.tool_calls
+                else:
+                    messages[-1].tool_calls = new_message.tool_calls
+        else:
+            # 否则添加为新的 partial 消息
+            new_message.partial = True
+            messages.append(new_message)
+
+        messages = self.format_input_message(messages)
+
+        # 继续调用 LLM 并流式返回后续结果
+        return self._call_llm(messages, tools, **kwargs)
+
     def stream_continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Generator[Message, None, None]:
-        pass
+        message = None
+        for chunk in completion:
+            message_chunk = self.stream_format_output_message(chunk)
+            if not message:
+                message = message_chunk
+            else:
+                message.reasoning_content += message_chunk.reasoning_content
+                message.content += message_chunk.content
+                if message_chunk.tool_calls:
+                    if message.tool_calls:
+                        if message.tool_calls[0]['index'] == message_chunk.tool_calls[0]['index']:
+                            if message_chunk.tool_calls[0]['id']:
+                                message.tool_calls[0]['id'] = message_chunk.tool_calls[0]['id']
+                            if message_chunk.tool_calls[0]['arguments']:
+                                message.tool_calls[0]['arguments'] += message_chunk.tool_calls[0]['arguments']
+                            if message_chunk.tool_calls[0]['tool_name']:
+                                message.tool_calls[0]['tool_name'] = message_chunk.tool_calls[0]['tool_name']
+                        else:
+                            message.tool_calls.append(ToolCall(
+                                id=message_chunk.tool_calls[0]['id'],
+                                arguments=message_chunk.tool_calls[0]['arguments'],
+                                type='function',
+                                tool_name=message_chunk.tool_calls[0]['tool_name'],
+                                index=message_chunk.tool_calls[0]['index']
+                            ))
+                    else:
+                        message.tool_calls = message_chunk.tool_calls
+            yield message_chunk
+            if chunk.choices[0].finish_reason in ['length', 'null']:
+                print(f'finish_reason: {chunk.choices[0].finish_reason}， continue generate.')
+                completion = self._stream_continue_generate(messages, message, tools, **kwargs)
+                for chunk in self.stream_continue_generate(messages, completion, tools, **kwargs):
+                    yield chunk
+
+    def stream_format_output_message(self, completion_chunk) -> Message:
+        content = completion_chunk.choices[0].delta.content
+        reasoning_content = completion_chunk.choices[0].delta.reasoning_content
+        tool_calls = None
+        if completion_chunk.choices[0].delta.tool_calls:
+            func = completion_chunk.choices[0].delta.tool_calls
+            tool_calls = [ToolCall(
+                    id=tool_call.id,
+                    index=tool_call.index,
+                    type=tool_call.type,
+                    arguments=tool_call.function.arguments,
+                    tool_name=tool_call.function.name
+                ) for tool_call in func
+            ]
+        return Message(role='assistant', content=content, reasoning_content=reasoning_content, tool_calls=tool_calls, id=completion_chunk.id)
 
     def format_output_message(self, completion) -> Message:
         content = completion.choices[0].message.content
@@ -81,34 +149,31 @@ class OpenAI(LLM):
             ]
         return Message(role='assistant', content=content, reasoning_content=reasoning_content, tool_calls=tool_calls, id=completion.id)
 
-    def stream_format_output_message(self, completion) -> Generator[Message, None, None]:
-        pass
-
     def _continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs):
         # ref: https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2862210.html&renderType=iframe
         # TODO: 移到dashscope_llm并找到真正openai的续写方式
         if messages[-1].to_dict().get('partial', False):
-            new_meessage = self.format_output_message(completion)
-            messages[-1].reasoning_content += new_meessage.reasoning_content
-            messages[-1].content += new_meessage.content
-            if new_meessage.tool_calls:
+            new_message = self.format_output_message(completion)
+            messages[-1].reasoning_content += new_message.reasoning_content
+            messages[-1].content += new_message.content
+            if new_message.tool_calls:
                 if messages[-1].tool_calls:
-                    messages[-1].tool_calls += new_meessage.tool_calls
+                    messages[-1].tool_calls += new_message.tool_calls
                 else:
-                    messages[-1].tool_calls = new_meessage.tool_calls
+                    messages[-1].tool_calls = new_message.tool_calls
         else:
             messages.append(self.format_output_message(completion))
             messages[-1].partial = True
 
         messages = self.format_input_message(messages)
-        print(f'messages: {messages}')
         return self._call_llm(messages, tools, **kwargs)
 
     def continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Message:
         # finish_reason: Literal["stop", "length", "tool_calls", "content_filter", "function_call"]
-        print(f'finish_reason: {completion.choices[0].finish_reason}')
+
 
         if completion.choices[0].finish_reason in ['length', 'null']:
+            print(f'finish_reason: {completion.choices[0].finish_reason}， continue generate.')
             completion = self._continue_generate(messages, completion, tools, **kwargs)
             return self.continue_generate(messages, completion, tools, **kwargs)
         else:
@@ -155,6 +220,7 @@ if __name__ == '__main__':
             "openai_base_url": "https://api-inference.modelscope.cn/v1",
             "openai_api_key": os.getenv("MODELSCOPE_API_KEY"),
             "stream": True,
+            "max_tokens": 50,
         }
     })
 
@@ -177,14 +243,13 @@ if __name__ == '__main__':
 
     llm = OpenAI(conf)
 
-    # conf配置
-    # res = llm.generate(messages)
-    # for chunk in res:
-    #     print(chunk)
+    res = llm.generate(messages=messages, tools=tools, extra_body={'enable_thinking': False})
+    for chunk in res:
+        print(chunk)
 
     # kwargs覆盖conf
-    message = llm.generate(messages=messages, tools=tools, stream=False, extra_body={'enable_thinking': False})
-    print(message)
+    # message = llm.generate(messages=messages, tools=tools, stream=False, extra_body={'enable_thinking': False})
+    # print(message)
     # messages.append(message)
     # messages.append(Message(role='tool', content='北京市朝阳区崔各庄阿里巴巴朝阳科技园'))
     # message = llm.generate(messages=messages, tools=tools, stream=False, extra_body={'enable_thinking': False})
