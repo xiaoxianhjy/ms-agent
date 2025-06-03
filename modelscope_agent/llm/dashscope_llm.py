@@ -1,30 +1,28 @@
-import inspect
-from typing import Any, Optional
+from typing import List
 
-from modelscope_agent.utils.llm_utils import retry
-from modelscope_agent.llm.llm import LLM
+from modelscope_agent.llm.utils import Message, Tool
+from modelscope_agent.llm.openai_llm import OpenAI
+from omegaconf import DictConfig
 
+class DashScope(OpenAI):
 
-class DashScope(LLM):
+    def __init__(self, config: DictConfig):
+        super().__init__(config, base_url=config.llm.dashscope_base_url, api_key=config.llm.dashscope_api_key)
 
-    def __init__(self, system):
-        self.system = system
-        self.client = OpenAI(
-            api_key=self.token,
-            base_url=self.base_url,
-        )
+    def _continue_generate(self, messages: List[Message], new_message, tools: List[Tool] = None, **kwargs):
+        # ref: https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2862210.html&renderType=iframe
+        if messages and messages[-1].to_dict().get('partial', False):
 
-    @retry(max_attempts=5)
-    def generate(self, messages, model: Optional[str] = None, tools=None, **kwargs) -> Any:
-        _e = None
-        parameters = inspect.signature(self.client.chat.completions.create).parameters
-        kwargs = {key: value for key, value in kwargs.items() if key in parameters}
-        completion = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-            parallel_tool_calls=False,
-            **kwargs
-        )
-        return completion
+            messages[-1].reasoning_content += new_message.reasoning_content
+            messages[-1].content += new_message.content
+            if new_message.tool_calls:
+                if messages[-1].tool_calls:
+                    messages[-1].tool_calls += new_message.tool_calls
+                else:
+                    messages[-1].tool_calls = new_message.tool_calls
+        else:
+            messages.append(new_message)
+            messages[-1].partial = True
 
+        messages = self.format_input_message(messages)
+        return self._call_llm(messages=messages, tools=tools, **kwargs)
