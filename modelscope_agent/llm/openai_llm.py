@@ -24,7 +24,7 @@ class OpenAI(LLM):
             api_key=api_key,
             base_url=base_url,
         )
-        self.args: Dict = {k: v for k, v in getattr(config.llm, 'generation_config', {}).items()}
+        self.args: Dict = {k: v for k, v in getattr(config, 'generation_config', {}).items()}
 
     @retry(max_attempts=3)
     def generate(self, messages: List[Message], tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
