@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Literal, Union, List, Dict, Any
+from typing import Literal, Union, List, Dict, Any, Optional
 from typing_extensions import Literal, Required, TypedDict
 from dataclasses import dataclass, asdict
 
@@ -33,6 +33,10 @@ class Message:
     content: Required[Union[str, List[Dict[str, 'Message']]]]
 
     tool_calls: List[ToolCall] = field(default_factory=list)
+
+    tool_call_id: Optional[str] = None
+
+    name: Optional[str] = None
 
     # 输出需要，输入时pop
     reasoning_content: str = ''

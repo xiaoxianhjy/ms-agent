@@ -64,7 +64,6 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.tool_manager: ToolManager = None
         self.memory_tools = []
         self.rag = None
-        atexit.register(self._cleanup_tools)
 
     def register_callback(self, callback: Callback):
         """Register a callback."""
@@ -112,8 +111,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.tool_manager = ToolManager(self.config)
         await self.tool_manager.connect()
 
-    def _cleanup_tools(self):
-        asyncio.run(self.tool_manager.cleanup())
+    async def _cleanup_tools(self):
+        await self.tool_manager.cleanup()
 
     def _query_documents(self, query):
         if self.rag is not None:
@@ -167,6 +166,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     self.run_status.should_stop = True
                 self._loop_callback('after_tool_call', messages)
             self._loop_callback('on_task_end', messages)
+            logger.info(messages[-1].content)
+            await self._cleanup_tools()
         except Exception as e:
             if self.config.help:
                 logger.error(f'Runtime error, please follow the instructions:\n\n {self.config.help}')
