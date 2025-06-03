@@ -115,8 +115,8 @@ class OpenAI(LLM):
         return Message(role='assistant', content=content, reasoning_content=reasoning_content, tool_calls=tool_calls, id=completion_chunk.id)
 
     def format_output_message(self, completion) -> Message:
-        content = completion.choices[0].message.content
-        reasoning_content = completion.choices[0].message.reasoning_content
+        content = completion.choices[0].message.content or ''
+        reasoning_content = completion.choices[0].message.reasoning_content or ''
         tool_calls = None
         if completion.choices[0].message.tool_calls:
             tool_calls = [ToolCall(
@@ -148,13 +148,14 @@ class OpenAI(LLM):
         return self._call_llm(messages, tools, **kwargs)
 
     def continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Message:
+        new_message = self.format_output_message(completion)
         if completion.choices[0].finish_reason in ['length', 'null']:
+            print(f'new_message: {new_message}')
             print(f'finish_reason: {completion.choices[0].finish_reason}， continue generate.')
-            completion = self._continue_generate(messages, completion, tools, **kwargs)
-            new_message = self.format_output_message(completion)
-            return self.continue_generate(messages, new_message, tools, **kwargs)
+            completion = self._continue_generate(messages, new_message, tools, **kwargs)
+            return self.continue_generate(messages, completion, tools, **kwargs)
         else:
-            return self.format_output_message(completion)
+            return new_message
 
     def format_input_message(self, messages: List[Message]) -> List[Dict[str, Any]]:
         openai_messages = []
@@ -209,7 +210,7 @@ if __name__ == '__main__':
 
     # tools = [
     #     Tool(server_name='amap-maps', tool_name='maps_regeocode', description='将一个高德经纬度坐标转换为行政区划地址信息', parameters={'type': 'object', 'properties': {'location': {'type': 'string', 'description': '经纬度'}}, 'required': ['location']}),
-    #     Tool(tool_name='mkdir', description='在文件系统创建目录', parameters={'type': 'object', 'properties': {'dir_name': {'type': 'string', 'description': '目录名'}}, 'required': ['location']})
+    #     Tool(tool_name='mkdir', description='在文件系统创建目录', parameters={'type': 'object', 'properties': {'dir_name': {'type': 'string', 'description': '目录名'}}, 'required': ['dir_name']})
     # ]
     tools = None
 
