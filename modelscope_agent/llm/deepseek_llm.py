@@ -38,12 +38,12 @@ if __name__ == '__main__':
     conf: DictConfig = OmegaConf.create({
         "llm": {
             "model": "deepseek-reasoner",
-            "deepseek_base_url": "https://api.deepseek.com/v1",
+            "deepseek_base_url": "https://api.deepseek.com/beta/v1",
             "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY"),
             "openai_base_url": "https://api-inference.modelscope.cn/v1",
             "openai_api_key": os.getenv("MODELSCOPE_API_KEY"),
             "generation_config": {
-                "stream": False,
+                "stream": True,
                 "max_tokens": 500,
             }
         }
@@ -54,14 +54,13 @@ if __name__ == '__main__':
         # Message(role='user', content='经度：116.4074，纬度：39.9042是什么地方。用这个名字作为目录名'),
         # Message(role='user', content='请你简单介绍杭州'),
         Message(role='user', content='创建2个文件夹，一个叫a,一个叫b'),
-
     ]
 
-    tools = [
-        # Tool(server_name='amap-maps', tool_name='maps_regeocode', description='将一个高德经纬度坐标转换为行政区划地址信息', parameters={'type': 'object', 'properties': {'location': {'type': 'string', 'description': '经纬度'}}, 'required': ['location']}),
-        Tool(tool_name='mkdir', description='在文件系统创建目录', parameters={'type': 'object', 'properties': {'dir_name': {'type': 'string', 'description': '目录名'}}, 'required': ['dir_name']})
-    ]
-    # tools = None
+    # tools = [
+    #     # Tool(server_name='amap-maps', tool_name='maps_regeocode', description='将一个高德经纬度坐标转换为行政区划地址信息', parameters={'type': 'object', 'properties': {'location': {'type': 'string', 'description': '经纬度'}}, 'required': ['location']}),
+    #     Tool(tool_name='mkdir', description='在文件系统创建目录', parameters={'type': 'object', 'properties': {'dir_name': {'type': 'string', 'description': '目录名'}}, 'required': ['dir_name']})
+    # ]
+    tools = None
 
 
     # 打印配置

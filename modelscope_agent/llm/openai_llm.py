@@ -1,3 +1,4 @@
+import copy
 import inspect
 from typing import Any, List, Dict, Optional, Generator
 
@@ -24,7 +25,7 @@ class OpenAI(LLM):
             api_key=api_key,
             base_url=base_url,
         )
-        self.args: Dict = {k: v for k, v in getattr(config, 'generation_config', {}).items()}
+        self.args: Dict = {k: v for k, v in getattr(config.llm, 'generation_config', {}).items()}
 
     @retry(max_attempts=3)
     def generate(self, messages: List[Message], tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
@@ -63,35 +64,41 @@ class OpenAI(LLM):
             **kwargs
         )
 
+    def merge_stream_message(self, pre_message_chunk: Optional[Message], message_chunk: Message) -> Optional[Message]:
+        if not pre_message_chunk:
+            return message_chunk
+        message = pre_message_chunk
+        message.reasoning_content += message_chunk.reasoning_content
+        message.content += message_chunk.content
+        if message_chunk.tool_calls:
+            if message.tool_calls:
+                if message.tool_calls[0]['index'] == message_chunk.tool_calls[0]['index']:
+                    if message_chunk.tool_calls[0]['id']:
+                        message.tool_calls[0]['id'] = message_chunk.tool_calls[0]['id']
+                    if message_chunk.tool_calls[0]['arguments']:
+                        message.tool_calls[0]['arguments'] += message_chunk.tool_calls[0]['arguments']
+                    if message_chunk.tool_calls[0]['tool_name']:
+                        message.tool_calls[0]['tool_name'] = message_chunk.tool_calls[0]['tool_name']
+                else:
+                    message.tool_calls.append(ToolCall(
+                        id=message_chunk.tool_calls[0]['id'],
+                        arguments=message_chunk.tool_calls[0]['arguments'],
+                        type='function',
+                        tool_name=message_chunk.tool_calls[0]['tool_name'],
+                        index=message_chunk.tool_calls[0]['index']
+                    ))
+            else:
+                message.tool_calls = message_chunk.tool_calls
+        return message
+
     def stream_continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Generator[Message, None, None]:
         message = None
         for chunk in completion:
             message_chunk = self.stream_format_output_message(chunk)
-            if not message:
-                message = message_chunk
-            else:
-                message.reasoning_content += message_chunk.reasoning_content
-                message.content += message_chunk.content
-                if message_chunk.tool_calls:
-                    if message.tool_calls:
-                        if message.tool_calls[0]['index'] == message_chunk.tool_calls[0]['index']:
-                            if message_chunk.tool_calls[0]['id']:
-                                message.tool_calls[0]['id'] = message_chunk.tool_calls[0]['id']
-                            if message_chunk.tool_calls[0]['arguments']:
-                                message.tool_calls[0]['arguments'] += message_chunk.tool_calls[0]['arguments']
-                            if message_chunk.tool_calls[0]['tool_name']:
-                                message.tool_calls[0]['tool_name'] = message_chunk.tool_calls[0]['tool_name']
-                        else:
-                            message.tool_calls.append(ToolCall(
-                                id=message_chunk.tool_calls[0]['id'],
-                                arguments=message_chunk.tool_calls[0]['arguments'],
-                                type='function',
-                                tool_name=message_chunk.tool_calls[0]['tool_name'],
-                                index=message_chunk.tool_calls[0]['index']
-                            ))
-                    else:
-                        message.tool_calls = message_chunk.tool_calls
             yield message_chunk
+
+            message = self.merge_stream_message(message, message_chunk)
+
             if chunk.choices[0].finish_reason in ['length', 'null']:
                 print(f'finish_reason: {chunk.choices[0].finish_reason}， continue generate.')
                 completion = self._continue_generate(messages, message, tools, **kwargs)
@@ -141,8 +148,8 @@ class OpenAI(LLM):
                 else:
                     messages[-1].tool_calls = new_message.tool_calls
         else:
+            new_message.partial = True
             messages.append(new_message)
-            messages[-1].partial = True
 
         messages = self.format_input_message(messages)
         return self._call_llm(messages, tools, **kwargs)
@@ -150,7 +157,6 @@ class OpenAI(LLM):
     def continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Message:
         new_message = self.format_output_message(completion)
         if completion.choices[0].finish_reason in ['length', 'null']:
-            print(f'new_message: {new_message}')
             print(f'finish_reason: {completion.choices[0].finish_reason}， continue generate.')
             completion = self._continue_generate(messages, new_message, tools, **kwargs)
             return self.continue_generate(messages, completion, tools, **kwargs)
@@ -196,8 +202,10 @@ if __name__ == '__main__':
             "model": "Qwen/Qwen3-235B-A22B",
             "openai_base_url": "https://api-inference.modelscope.cn/v1",
             "openai_api_key": os.getenv("MODELSCOPE_API_KEY"),
-            "stream": True,
-            "max_tokens": 50,
+            "generation_config": {
+                "stream": True,
+                "max_tokens": 50
+            }
         }
     })
 
