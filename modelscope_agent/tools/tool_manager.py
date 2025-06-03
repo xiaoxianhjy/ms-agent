@@ -21,7 +21,7 @@ class ToolManager:
         await self.loop_tool.connect()
         for tool in self.extra_tools:
             await tool.connect()
-        asyncio.run(self.reindex_tool())
+        await self.reindex_tool()
 
     async def cleanup(self):
         await self.mcp_client.cleanup()
@@ -33,7 +33,7 @@ class ToolManager:
 
         def extend_tool(tool_ins: ToolBase, server_name: str, tool_list: List):
             for tool in tool_list:
-                assert tool['tool_name'] not in self._tool_index, f'Tool name duplicated {tool['tool_name']}'
+                assert tool['tool_name'] not in self._tool_index, f'Tool name duplicated {tool["tool_name"]}'
                 self._tool_index[tool['tool_name']] = (tool_ins, server_name, tool)
 
         mcps = await self.mcp_client.get_tools()

@@ -62,11 +62,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.trust_remote_code = kwargs.get('trust_remote_code', False)
         self._register_callback_from_config()
         self.tool_manager: ToolManager = None
-        self._prepare_tools()
         self.memory_tools = []
-        self._prepare_memory()
         self.rag = None
-        self._prepare_rag()
         atexit.register(self._cleanup_tools)
 
     def register_callback(self, callback: Callback):
@@ -99,19 +96,21 @@ You are a robot assistant. You will be given many tools to help you complete tas
         for callback in self.callbacks:
             getattr(callback, point)(self.config, self.run_status, messages)
 
-    def _parallel_tool_call(self, messages: List[Message]):
-        tool_call_result = self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
+    async def _parallel_tool_call(self, messages: List[Message]):
+        tool_call_result = await self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
         assert len(tool_call_result) == len(messages[-1].tool_calls)
-        _new_message = Message(
-            role='tool',
-            content=tool_call_result[0], # TODO
-            tool_call_id=messages[-1].tool_calls[0].id
-        )
-        messages.append(_new_message)
+        for tool_call_result, tool_call_query in zip(tool_call_result, messages[-1].tool_calls):
+            _new_message = Message(
+                role='tool',
+                content=tool_call_result,
+                tool_call_id=tool_call_query['id'],
+                name=tool_call_query['tool_name']
+            )
+            messages.append(_new_message)
 
-    def _prepare_tools(self):
+    async def _prepare_tools(self):
         self.tool_manager = ToolManager(self.config)
-        asyncio.run(self.tool_manager.connect())
+        await self.tool_manager.connect()
 
     def _cleanup_tools(self):
         asyncio.run(self.tool_manager.cleanup())
@@ -149,6 +148,9 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
     async def run(self, prompt, **kwargs):
         try:
+            await self._prepare_tools()
+            self._prepare_memory()
+            self._prepare_rag()
             messages = self._prepare_messages(prompt)
             self._loop_callback('on_task_begin', messages)
             while not self.run_status.should_stop:

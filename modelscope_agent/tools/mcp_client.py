@@ -39,7 +39,8 @@ class MCPClient(ToolBase):
             tool_name, tool_args)
         texts = []
         if response.isError:
-            return f'execute error: {'\n\n'.join(response.content)}'
+            sep = "\n\n"
+            return f'execute error: {sep.join(response.content)}'
         for content in response.content:
             if content.type == 'text':
                 texts.append(content.text)
@@ -65,14 +66,15 @@ class MCPClient(ToolBase):
     @staticmethod
     def print_tools(server_name: str, tools: ListToolsResult):
         tools = tools.tools
+        sep = "\n"
         if len(tools) > 10:
             tools = [tool.name for tool in tools][:10]
             logger.info(f'\nConnected to server "{server_name}" '
-                        f'with tools: \n{"\n".join(tools)}\nOnly list first 10 of them.')
+                        f'with tools: \n{sep.join(tools)}\nOnly list first 10 of them.')
         else:
             tools = [tool.name for tool in tools]
             logger.info(f'\nConnected to server "{server_name}" '
-                        f'with tools: \n{"\n".join(tools)}.')
+                        f'with tools: \n{sep.join(tools)}.')
 
     async def connect_to_server(self, server_name: str, **kwargs):
         logger.info(f'connect to {server_name}')
@@ -111,13 +113,10 @@ class MCPClient(ToolBase):
                     'encoding_error_handler', DEFAULT_ENCODING_ERROR_HANDLER),
             )
 
-            stdio_transport = await self.exit_stack.enter_async_context(
+            stdio, write = await self.exit_stack.enter_async_context(
                 stdio_client(server_params))
-
-            stdio, write = stdio_transport
             session = await self.exit_stack.enter_async_context(
                 ClientSession(stdio, write))
-
             await session.initialize()
 
             # Store session
