@@ -5,12 +5,13 @@ from omegaconf import DictConfig, OmegaConf
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 
 from modelscope_agent.llm.llm import LLM
+from modelscope_agent.utils.llm_utils import retry
 from modelscope_agent.llm.utils import Message, Tool, ToolCall
 from modelscope_agent.utils.utils import assert_package_exist
 
 
-
 class OpenAI(LLM):
+    input_msg = {'role', 'content', 'tool_calls', 'partial', 'prefix'}
 
     def __init__(self, config: DictConfig, base_url: Optional[str] = None,  api_key: Optional[str] = None):
         super().__init__(config)
@@ -23,10 +24,10 @@ class OpenAI(LLM):
             api_key=api_key,
             base_url=base_url,
         )
-        exclude_fields = {"model", "base_url", "api_key"}
-        self.args: Dict = {k: v for k, v in OmegaConf.to_container(getattr(config, 'generation_config', {}), resolve=True).items() if k not in exclude_fields}
+        self.args: Dict = {k: v for k, v in getattr(config.llm, 'generation_config', {}).items()}
 
-    def generate(self, messages: List[Message], model: Optional[str] = None, tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
+    @retry(max_attempts=3)
+    def generate(self, messages: List[Message], tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
         parameters = inspect.signature(self.client.chat.completions.create).parameters
         args = self.args.copy()
         args.update(kwargs)
@@ -45,7 +46,7 @@ class OpenAI(LLM):
                     }
                 } for tool in tools
             ]
-        completion = self._call_llm(model or self.model, messages, tools, **args)
+        completion = self._call_llm(messages, tools, **args)
 
         # 考虑到复杂任务可能存在 单次调用llm生成不完整的情况。需要调用continue_gen判断是否应多次调用以获得完整输出
         if stream:
@@ -53,35 +54,14 @@ class OpenAI(LLM):
         else:
             return self.continue_generate(messages, completion, tools, **args)
 
-    def _call_llm(self, model, messages, tools, **kwargs):
+    def _call_llm(self, messages, tools, **kwargs):
         messages = self.format_input_message(messages)
         return self.client.chat.completions.create(
-            model=model,
+            model=self.model,
             messages=messages,
             tools=tools,
             **kwargs
         )
-
-    def _stream_continue_generate(self, messages: List[Message], new_message, tools: List[Tool] = None, **kwargs):
-        # 如果上一条消息也和new_message一样不完整，则进行拼接
-        if messages and messages[-1].to_dict().get('partial', False):
-            # 更新最后一条消息的内容
-            messages[-1].reasoning_content += new_message.reasoning_content
-            messages[-1].content += new_message.content
-            if new_message.tool_calls:
-                if messages[-1].tool_calls:
-                    messages[-1].tool_calls += new_message.tool_calls
-                else:
-                    messages[-1].tool_calls = new_message.tool_calls
-        else:
-            # 否则添加为新的 partial 消息
-            new_message.partial = True
-            messages.append(new_message)
-
-        messages = self.format_input_message(messages)
-
-        # 继续调用 LLM 并流式返回后续结果
-        return self._call_llm(messages, tools, **kwargs)
 
     def stream_continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Generator[Message, None, None]:
         message = None
@@ -114,13 +94,13 @@ class OpenAI(LLM):
             yield message_chunk
             if chunk.choices[0].finish_reason in ['length', 'null']:
                 print(f'finish_reason: {chunk.choices[0].finish_reason}， continue generate.')
-                completion = self._stream_continue_generate(messages, message, tools, **kwargs)
+                completion = self._continue_generate(messages, message, tools, **kwargs)
                 for chunk in self.stream_continue_generate(messages, completion, tools, **kwargs):
                     yield chunk
 
     def stream_format_output_message(self, completion_chunk) -> Message:
-        content = completion_chunk.choices[0].delta.content
-        reasoning_content = completion_chunk.choices[0].delta.reasoning_content
+        content = completion_chunk.choices[0].delta.content or ''
+        reasoning_content = completion_chunk.choices[0].delta.reasoning_content or ''
         tool_calls = None
         if completion_chunk.choices[0].delta.tool_calls:
             func = completion_chunk.choices[0].delta.tool_calls
@@ -149,11 +129,10 @@ class OpenAI(LLM):
             ]
         return Message(role='assistant', content=content, reasoning_content=reasoning_content, tool_calls=tool_calls, id=completion.id)
 
-    def _continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs):
+    def _continue_generate(self, messages: List[Message], new_message, tools: List[Tool] = None, **kwargs):
         # ref: https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2862210.html&renderType=iframe
         # TODO: 移到dashscope_llm并找到真正openai的续写方式
         if messages[-1].to_dict().get('partial', False):
-            new_message = self.format_output_message(completion)
             messages[-1].reasoning_content += new_message.reasoning_content
             messages[-1].content += new_message.content
             if new_message.tool_calls:
@@ -162,20 +141,18 @@ class OpenAI(LLM):
                 else:
                     messages[-1].tool_calls = new_message.tool_calls
         else:
-            messages.append(self.format_output_message(completion))
+            messages.append(new_message)
             messages[-1].partial = True
 
         messages = self.format_input_message(messages)
         return self._call_llm(messages, tools, **kwargs)
 
     def continue_generate(self, messages: List[Message], completion, tools: List[Tool] = None, **kwargs) -> Message:
-        # finish_reason: Literal["stop", "length", "tool_calls", "content_filter", "function_call"]
-
-
         if completion.choices[0].finish_reason in ['length', 'null']:
             print(f'finish_reason: {completion.choices[0].finish_reason}， continue generate.')
             completion = self._continue_generate(messages, completion, tools, **kwargs)
-            return self.continue_generate(messages, completion, tools, **kwargs)
+            new_message = self.format_output_message(completion)
+            return self.continue_generate(messages, new_message, tools, **kwargs)
         else:
             return self.format_output_message(completion)
 
@@ -200,8 +177,7 @@ class OpenAI(LLM):
                     tool_calls.append(tool_call)
                 message['tool_calls'] = tool_calls
 
-            input_msg = {'role', 'content', 'tool_calls', 'partial'}
-            message = {key: value for key, value in message.items() if key in input_msg and value}
+            message = {key: value for key, value in message.items() if key in self.input_msg and value}
 
             openai_messages.append(message)
 

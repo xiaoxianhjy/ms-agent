@@ -30,7 +30,7 @@ class Tool(TypedDict, total=False):
 class Message:
     role: Required[Literal['system', 'user', 'assistant', 'tool']]
 
-    content: Required[Union[str, List[Dict[str, 'Message']]]]
+    content: Union[str, List[Dict[str, 'Message']]] = ''
 
     tool_calls: List[ToolCall] = field(default_factory=list)
 
@@ -42,6 +42,7 @@ class Message:
 
     # 续写模式
     partial: bool = False
+    prefix: bool = False
 
     def to_dict(self):
         return asdict(self)
