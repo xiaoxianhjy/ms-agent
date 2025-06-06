@@ -12,8 +12,7 @@ class RagTool(ToolBase):
         super(RagTool, self).__init__(config)
         base_path = os.path.dirname(__file__)
         mcp_file = os.path.join(base_path, 'rag.yaml')
-        config = OmegaConf.load(mcp_file)
-        self.mcp_client = MCPClient(config)
+        self.mcp_client = MCPClient(OmegaConf.load(mcp_file))
 
 
     async def connect(self):

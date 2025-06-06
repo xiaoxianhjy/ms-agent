@@ -8,12 +8,19 @@ generation_config:
   top_p: 0.8
   temperature: 0.5
   top_k: 50
-  stream: true
+  stream: false
   extra_body:
     enable_thinking: false
 
 prompt:
-  system:
+  system: |
+    You are a robot assistant. You will be given many tools to help you complete tasks, and you need to use them to accomplish the tasks assigned to you.
+
+    1. Carefully review the tool descriptions to ensure you call the correct tool and pass the correct parameters.
+    2. You need to create a detailed task list at the beginning. YOU MUST USE the `notebook` tool to manage your plans.
+    3. For complex tasks, you can break them down into subtasks. These subtasks will be executed separately by other robot assistants, who will return the results to you. Make sure to provide appropriate system instructions and queries for each subtask to ensure they can proceed normally.
+    4. If you are assigned a task, ensure that the final information you return strictly follows the requirements in the system instructions and query. Do not end your task before it is completed. If there are task management tools, pay attention to the prompts they give you and strictly follow these prompts.
+    5. You can call tools in parallel and ensure that you call tools in each round of dialogue before the task is completed.
 
 memory:
 
@@ -23,6 +30,12 @@ servers:
     args:
       - run
       - <crawl4ai_script>
+
+  notebook:
+    command: "uv"
+    args:
+      - run
+      - <notebook_script>
 
   web-search:
     command: "npx"

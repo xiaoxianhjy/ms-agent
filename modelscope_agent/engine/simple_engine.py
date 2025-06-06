@@ -36,7 +36,7 @@ class SimpleEngine:
 5. 你可以并行调用工具，并保证在任务完成之前每一轮对话都会调用工具。
 """
 
-    DEFAULT_SYSTEM_EN = """Here is the English translation:
+    DEFAULT_SYSTEM_EN = """
 
 You are a robot assistant. You will be given many tools to help you complete tasks, and you need to use them to accomplish the tasks assigned to you.
 
@@ -106,6 +106,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 name=tool_call_query['tool_name']
             )
             messages.append(_new_message)
+            logger.info(_new_message.content)
 
     async def _prepare_tools(self):
         self.tool_manager = ToolManager(self.config)
@@ -145,6 +146,18 @@ You are a robot assistant. You will be given many tools to help you complete tas
             messages = memory_tool.refine(messages)
         return messages
 
+    def handle_stream_message(self):
+        message = None
+        for msg in self.llm.generate():
+            yield msg
+            message = self.llm.merge_stream_message(message, msg)
+
+        return message
+
+    def log_output(self, content: str):
+        for line in content.split('\n'):
+            logger.info(line)
+
     async def run(self, prompt, **kwargs):
         try:
             await self._prepare_tools()
@@ -156,8 +169,16 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)
                 tools = await self.tool_manager.get_tools()
-                _response_message = self.llm.generate(messages, tools=tools)
+                if getattr(self.config.generation_config, 'stream', False):
+                    _response_message = self.handle_stream_message()
+                else:
+                    _response_message = self.llm.generate(messages, tools=tools)
                 messages.append(_response_message)
+                if _response_message.content:
+                    self.log_output(_response_message.content)
+                else:
+                    for tool_call in _response_message.tool_calls:
+                        self.log_output(str(tool_call))
                 self._loop_callback('after_generate_response', messages)
                 self._loop_callback('on_tool_call', messages)
                 if messages[-1].tool_calls:
@@ -166,7 +187,6 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     self.run_status.should_stop = True
                 self._loop_callback('after_tool_call', messages)
             self._loop_callback('on_task_end', messages)
-            logger.info(messages[-1].content)
             await self._cleanup_tools()
         except Exception as e:
             if self.config.help:
