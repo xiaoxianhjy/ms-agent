@@ -15,8 +15,8 @@ class ObserverPlaner(Planer):
         observer_config = self.config.planer.observer
         self.observer = LLM.from_config(observer_config)
 
-    def generate_plan(self, llm: LLM, messages: List[Message]):
+    def generate_plan(self, messages: List[Message], run_status: RunStatus):
         pass
 
-    def update_plan(self, llm: LLM, messages: List[Message], run_status: RunStatus):
+    def update_plan(self, messages: List[Message], run_status: RunStatus):
         pass

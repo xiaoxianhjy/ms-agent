@@ -76,7 +76,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         local_dir = self.config.local_dir if hasattr(self.config, 'local_dir') else None
         if hasattr(self.config, 'callbacks'):
             for _callback in self.config.callbacks:
-                if _callback.endswith('.py'):
+                if _callback not in callbacks_mapping:
                     if not self.trust_remote_code:
                         raise AssertionError(f'Your config file contains external code, '
                                              f'instantiate the code may be UNSAFE, if you trust the code, '
@@ -84,19 +84,18 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     if sys.path[0] != local_dir:
                         assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
                         sys.path.insert(0, local_dir)
-                    callback_file = importlib.import_module(_callback[:-3])
+                    callback_file = importlib.import_module(_callback)
                     module_classes = {name: cls for name, cls in inspect.getmembers(callback_file, inspect.isclass)}
                     for name, cls in module_classes.items():
                         # Find cls which base class is `Callback`
-                        if cls.__base__[0] is Callback:
-                            self.callbacks.append(cls())
+                        if cls.__bases__[0] is Callback:
+                            self.callbacks.append(cls(self.config))
                 else:
-                    assert _callback in callbacks_mapping
                     self.callbacks.append(callbacks_mapping[_callback]())
 
     def _loop_callback(self, point, messages: List[Message]):
         for callback in self.callbacks:
-            getattr(callback, point)(self.config, self.run_status, messages)
+            getattr(callback, point)(self.run_status, messages)
 
     async def _parallel_tool_call(self, messages: List[Message]):
         tool_call_result = await self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
@@ -158,7 +157,9 @@ You are a robot assistant. You will be given many tools to help you complete tas
         return messages
 
     def _update_plan(self, messages: List[Message]):
-        self.planer.update_plan(self.llm, messages, self.run_status)
+        if self.planer:
+            self.planer.update_plan(self.llm, messages, self.run_status)
+        return messages
 
     def handle_stream_message(self):
         message = None
@@ -180,7 +181,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self._prepare_rag()
             messages = self._prepare_messages(prompt)
             self._loop_callback('on_task_begin', messages)
-            self.planer.generate_plan(self.llm, messages)
+            if self.planer:
+                self.planer.generate_plan(messages, self.run_status)
             while not self.run_status.should_stop:
                 self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)

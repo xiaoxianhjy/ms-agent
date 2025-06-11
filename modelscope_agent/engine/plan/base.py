@@ -4,7 +4,6 @@ from typing import List
 from pydantic import ConfigDict
 
 from modelscope_agent.callbacks import RunStatus
-from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 
 
@@ -14,10 +13,10 @@ class Planer:
         self.config = config
 
     @abstractmethod
-    def generate_plan(self, llm: LLM, messages: List[Message]):
+    def generate_plan(self, messages: List[Message], run_status: RunStatus):
         pass
 
     @abstractmethod
-    def update_plan(self, llm: LLM, messages: List[Message], run_status: RunStatus):
+    def update_plan(self, messages: List[Message], run_status: RunStatus):
         pass
 

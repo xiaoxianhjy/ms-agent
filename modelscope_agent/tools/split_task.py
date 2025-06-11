@@ -1,3 +1,5 @@
+import asyncio
+
 from omegaconf import DictConfig
 
 from modelscope_agent.llm.utils import Tool
@@ -32,10 +34,16 @@ class SplitTask(ToolBase):
 
 
     async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict):
-        system = tool_args['system']
-        query = tool_args['query']
-        config = DictConfig(self.config)
-        config.prompt.system = system
         from modelscope_agent.engine import SimpleEngine
-        engine = SimpleEngine(config=config)
-        return await engine.run(query)
+        tasks = tool_args.get('tasks')
+        sub_tasks = []
+        for task in tasks:
+            system = task['system']
+            query = task['query']
+            config = DictConfig(self.config)
+            config.prompt.system = system
+            config.prompt.query = query
+            engine = SimpleEngine(config=config)
+            sub_tasks.append(engine.run(query))
+        result = await asyncio.gather(*sub_tasks)
+        return result

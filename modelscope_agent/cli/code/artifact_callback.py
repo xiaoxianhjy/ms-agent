@@ -43,7 +43,7 @@ Your answer should be: <result>index.js</result>
         assert '<result>' in _response_message[-1].content and '</result>' in _response_message[-1].content
         return re.findall(r'<result>(.*?)</result>', _response_message[-1].content)[0]
 
-    def after_generate_response(self, config: DictConfig, run_status: RunStatus, messages: List[Message]):
+    def after_generate_response(self, run_status: RunStatus, messages: List[Message]):
         last_message_content = messages[-1].content
         if '</code>' in last_message_content:
             code = ''
@@ -62,8 +62,9 @@ Your answer should be: <result>index.js</result>
                     elif recording:
                         code += message.content
             if code:
-                code_file = self.extract_metadata(config, run_status.llm, messages)
+                code_file = self.extract_metadata(self.config, run_status.llm, messages)
                 self.file_system.create_directory('./output')
                 self.file_system.write_file(code_file, code)
+            run_status.should_stop = True
 
 

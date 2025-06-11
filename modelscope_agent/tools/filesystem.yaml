@@ -1,7 +1,7 @@
-servers:
+tools:
   filesystem:
     command: "npx"
     args:
       - "-y"
-      - "@modelcontextprotocol/server-filesystem",
+      - "@modelcontextprotocol/server-filesystem"
       - "./output"

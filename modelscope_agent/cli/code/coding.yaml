@@ -64,6 +64,7 @@ memory:
 
 tools:
   split_task:
+    mcp: false
 
 help: |
 
