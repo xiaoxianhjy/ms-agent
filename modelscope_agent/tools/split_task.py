@@ -4,7 +4,7 @@ from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 
 
-class LoopTool(ToolBase):
+class SplitTask(ToolBase):
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
@@ -20,13 +20,12 @@ class LoopTool(ToolBase):
             'split_complex_task': [Tool(
                 tool_name='split_to_sub_task',
                 server_name='split_complex_task',
-                description='Split complex task into sub tasks, for example, split a website generation task into sub tasks, '
+                description='Split complex task into sub tasks and start them, for example, split a website generation task into sub tasks, '
                                'you plan the framework, include code files and classes and functions, and give the detail '
                                'information to the system and query field of the subtask, then '
                                'let each subtask to write a single file',
                 parameters={
-                    'system': 'str type, The system prompt to use in this sub task.',
-                    'query': 'str type, The specific query in this sub task.'
+                    'tasks': 'List type, each element is a dict, which contains two fields: system and query to start the sub task.',
                 }
         )]
         }

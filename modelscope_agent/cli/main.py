@@ -5,7 +5,8 @@ import sys
 from typing import Dict, Optional
 
 ROUTE_MAPPING: Dict[str, str] = {
-    'search': 'modelscope_agent.cli.search',
+    'search': 'modelscope_agent.cli.search.search',
+    'code': 'modelscope_agent.cli.code.code',
 }
 
 

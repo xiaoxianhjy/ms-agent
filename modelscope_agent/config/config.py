@@ -104,7 +104,8 @@ class Config:
 
             }
         }
-        if config.servers:
-            for server, server_config in config.servers.items():
-                servers['mcpServers'][server] = deepcopy(server_config)
+        if hasattr(config, 'tools'):
+            for server, server_config in config.tools.items():
+                if getattr(server_config, 'mcp', True):
+                    servers['mcpServers'][server] = deepcopy(server_config)
         return servers

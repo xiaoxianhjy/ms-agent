@@ -1,15 +1,17 @@
-import asyncio
-import inspect
-from typing import List, Optional, Dict
-import sys
-from omegaconf import DictConfig
 import importlib
-import atexit
-from modelscope_agent.callbacks import callbacks_mapping
+import inspect
+import sys
+from typing import List, Optional, Dict
+
+from omegaconf import DictConfig
+
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.callbacks import RunStatus
+from modelscope_agent.callbacks import callbacks_mapping
 from modelscope_agent.config import Config
 from modelscope_agent.engine.memory import memory_mapping
+from modelscope_agent.engine.plan.base import Planer
+from modelscope_agent.engine.plan.utils import planer_mapping
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.rag.base import Rag
@@ -58,11 +60,12 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self.config = Config.from_task(task_dir_or_id, env)
         self.llm = LLM.from_config(self.config)
         self.callbacks = []
-        self.run_status = RunStatus()
+        self.run_status = RunStatus(llm=self.llm)
         self.trust_remote_code = kwargs.get('trust_remote_code', False)
         self._register_callback_from_config()
-        self.tool_manager: ToolManager = None
+        self.tool_manager: Optional[ToolManager] = None
         self.memory_tools = []
+        self.planer: Optional[Planer] = None
         self.rag = None
 
     def register_callback(self, callback: Callback):
@@ -134,7 +137,15 @@ You are a robot assistant. You will be given many tools to help you complete tas
             for _memory in self.config.memory:
                 assert _memory in memory_mapping, (f'{_memory} not in memory_mapping, '
                                                    f'which supports: {list(memory_mapping.keys())}')
-                self.memory_tools.append(memory_mapping[_memory]())
+                self.memory_tools.append(memory_mapping[_memory](self.config))
+
+    def _prepare_planer(self):
+        if hasattr(self.config, 'planer') and self.config.planer:
+            _planer = self.config.planer
+            planer_name = next(_planer.keys())
+            assert planer_name in planer_mapping, (f'{planer_name} not in planer_mapping, '
+                                               f'which supports: {list(planer_mapping.keys())}')
+            self.planer = planer_mapping[planer_name](self.config)
 
     def _prepare_rag(self):
         if hasattr(self.config, 'rag') and self.config.rag:
@@ -145,6 +156,9 @@ You are a robot assistant. You will be given many tools to help you complete tas
         for memory_tool in self.memory_tools:
             messages = memory_tool.refine(messages)
         return messages
+
+    def _update_plan(self, messages: List[Message]):
+        self.planer.update_plan(self.llm, messages, self.run_status)
 
     def handle_stream_message(self):
         message = None
@@ -162,12 +176,15 @@ You are a robot assistant. You will be given many tools to help you complete tas
         try:
             await self._prepare_tools()
             self._prepare_memory()
+            self._prepare_planer()
             self._prepare_rag()
             messages = self._prepare_messages(prompt)
             self._loop_callback('on_task_begin', messages)
+            self.planer.generate_plan(self.llm, messages)
             while not self.run_status.should_stop:
                 self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)
+                messages = self._update_plan(messages)
                 tools = await self.tool_manager.get_tools()
                 if getattr(self.config.generation_config, 'stream', False):
                     _response_message = self.handle_stream_message()

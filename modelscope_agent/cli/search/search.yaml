@@ -31,12 +31,6 @@ servers:
       - run
       - <crawl4ai_script>
 
-  notebook:
-    command: "uv"
-    args:
-      - run
-      - <notebook_script>
-
   web-search:
     command: "npx"
     args:
