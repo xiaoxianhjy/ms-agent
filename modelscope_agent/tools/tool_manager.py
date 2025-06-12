@@ -13,6 +13,7 @@ class ToolManager:
         self.config = config
         self.servers = MCPClient(config)
         self.extra_tools: List[ToolBase] = []
+        self.has_split_task_tool = False
         if hasattr(config, 'tools') and hasattr(config.tools, 'split_task'):
             self.split_task = SplitTask(config)
             self.has_split_task_tool = True
@@ -67,7 +68,7 @@ class ToolManager:
             tool_args = json.loads(tool_args)
         assert tool_name in self._tool_index, 'Tool name not found'
         tool_ins, server_name, _ = self._tool_index[tool_name]
-        return await tool_ins.call_tool(server_name, tool_name, tool_args)
+        return await tool_ins.call_tool(server_name, tool_name=tool_name, tool_args=tool_args)
 
     async def parallel_call_tool(self, tool_list: List[Tuple[str, Dict[str, Any]]]):
         tasks = [self.single_call_tool(tool) for tool in tool_list]

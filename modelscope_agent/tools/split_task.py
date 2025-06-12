@@ -19,9 +19,9 @@ class SplitTask(ToolBase):
 
     async def get_tools(self):
         return {
-            'split_complex_task': [Tool(
+            'split_task': [Tool(
                 tool_name='split_to_sub_task',
-                server_name='split_complex_task',
+                server_name='split_task',
                 description='Split complex task into sub tasks and start them, for example, split a website generation task into sub tasks, '
                                'you plan the framework, include code files and classes and functions, and give the detail '
                                'information to the system and query field of the subtask, then '
@@ -37,13 +37,18 @@ class SplitTask(ToolBase):
         from modelscope_agent.engine import SimpleEngine
         tasks = tool_args.get('tasks')
         sub_tasks = []
-        for task in tasks:
+        for i, task in enumerate(tasks):
             system = task['system']
             query = task['query']
             config = DictConfig(self.config)
             config.prompt.system = system
             config.prompt.query = query
-            engine = SimpleEngine(config=config)
-            sub_tasks.append(engine.run(query))
+            # config.tools = DictConfig({})
+            trust_remote_code = getattr(config, 'trust_remote_code', False)
+            engine = SimpleEngine(config=config, trust_remote_code=trust_remote_code)
+            sub_tasks.append(engine.run(query, tag=f'workflow {i}'))
         result = await asyncio.gather(*sub_tasks)
+        res = []
+        for messages in result:
+            res.append(messages[-1].content)
         return result

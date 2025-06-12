@@ -17,7 +17,7 @@ class ArtifactCallback(Callback):
 
     @staticmethod
     def extract_metadata(config: DictConfig, llm: LLM, messages: List[Message]):
-        assert messages[0].role == 'system' and  messages[0].role == 'user'
+        assert messages[0].role == 'system' and  messages[1].role == 'user'
         _system = """Here gives a LLM system field, and a user query field, you need to extract the code file information of it, and wraps the final result in <result></result>.
 Here shows an example:
 system is: You are a code engineer, you should help me to write a code file, which is a part of a complex job. The rules you need to follow are: ...
@@ -65,6 +65,10 @@ Your answer should be: <result>index.js</result>
                 code_file = self.extract_metadata(self.config, run_status.llm, messages)
                 self.file_system.create_directory('./output')
                 self.file_system.write_file(code_file, code)
+                messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                                                                  f'Task sunning successfully, '
+                                                                  f'the code has been saved in the {code_file} file.'))
+            else:
+                messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                                                                  f'Task sunning failed, code format error, please consider retry generation.'))
             run_status.should_stop = True
-
-

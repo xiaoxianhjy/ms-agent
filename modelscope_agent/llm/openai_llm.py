@@ -47,6 +47,8 @@ class OpenAI(LLM):
                     }
                 } for tool in tools
             ]
+        else:
+            tools = None
         completion = self._call_llm(messages, tools, **args)
 
         # 考虑到复杂任务可能存在 单次调用llm生成不完整的情况。需要调用continue_gen判断是否应多次调用以获得完整输出

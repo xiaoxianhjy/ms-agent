@@ -62,6 +62,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.callbacks = []
         self.run_status = RunStatus(llm=self.llm)
         self.trust_remote_code = kwargs.get('trust_remote_code', False)
+        self.config.trust_remote_code = self.trust_remote_code
         self._register_callback_from_config()
         self.tool_manager: Optional[ToolManager] = None
         self.memory_tools = []
@@ -169,9 +170,9 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
         return message
 
-    def log_output(self, content: str):
+    def log_output(self, content: str, tag='Default workflow'):
         for line in content.split('\n'):
-            logger.info(line)
+            logger.info(f'[{tag}] {line}')
 
     async def run(self, prompt, **kwargs):
         try:
@@ -179,6 +180,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self._prepare_memory()
             self._prepare_planer()
             self._prepare_rag()
+            tag = kwargs.get('tag', 'Default workflow')
             messages = self._prepare_messages(prompt)
             self._loop_callback('on_task_begin', messages)
             if self.planer:
@@ -194,10 +196,10 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     _response_message = self.llm.generate(messages, tools=tools)
                 messages.append(_response_message)
                 if _response_message.content:
-                    self.log_output(_response_message.content)
-                else:
+                    self.log_output(_response_message.content, tag=tag)
+                if _response_message.tool_calls:
                     for tool_call in _response_message.tool_calls:
-                        self.log_output(str(tool_call))
+                        self.log_output(str(tool_call), tag=tag)
                 self._loop_callback('after_generate_response', messages)
                 self._loop_callback('on_tool_call', messages)
                 if messages[-1].tool_calls:
@@ -207,6 +209,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 self._loop_callback('after_tool_call', messages)
             self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
+            return messages
         except Exception as e:
             if self.config.help:
                 logger.error(f'Runtime error, please follow the instructions:\n\n {self.config.help}')

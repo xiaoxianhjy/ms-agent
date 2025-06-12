@@ -44,15 +44,17 @@ prompt:
     * CSS part
         - Subtask: Write main.css. This file uses classes including...
     
-    Therefore, I need to call `split_complex_task` to complete this work. According to the sub tasks listed before, I need to call `split_complex_task` with the detailed multi-task information below:
+    Therefore, according to the sub tasks listed before, I need to call `split_to_sub_task` with the detailed multi-task information.
+    
+    You should **DO A TOOL CALLING** with multi sub tasks information, here shows example of tool args:
     [
       {
         "system": "You are a software engineer which helps me to finish a part of my job. You need to follow these instructions: 1. ... 2. ...",
-        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is the index.js page, the interface design should be: 1. ... 2. ..."
+        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is the index.html page, the interface design should be: 1. ... 2. ..."
       },
       {
         "system": "You are a software engineer which helps me to finish a part of my job. You need to follow these instructions: 1. ... 2. ...",
-        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is the carousel.js page, the interface design should be: 1. ... 2. ..."
+        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is the index.js code file, the interface design should be: 1. ... 2. ..."
       },
     ...
     ]
