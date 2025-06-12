@@ -107,6 +107,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 role='tool',
                 content=tool_call_result,
                 tool_call_id=tool_call_query['id'],
+                name=tool_call_query['tool_name']
             )
             messages.append(_new_message)
             logger.info(_new_message.content)

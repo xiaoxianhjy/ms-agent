@@ -16,7 +16,8 @@ class FileSystemTool(ToolBase):
 
 
     async def connect(self):
-        await self.mcp_client.connect()
+        # await self.mcp_client.connect()
+        pass
 
     async def get_tools(self):
         return await self.mcp_client.get_tools()
@@ -25,10 +26,17 @@ class FileSystemTool(ToolBase):
         return await self.mcp_client.call_tool(server_name, tool_name, tool_args)
 
     async def create_directory(self, path: str):
-        return await self.call_tool('filesystem', tool_name='create_directory', tool_args={'path': path})
+        os.makedirs(path, exist_ok=True)
+        return 'Ok'
+        # return await self.call_tool('filesystem', tool_name='create_directory', tool_args={'path': path})
 
     async def write_file(self, path: str, content: str):
-        return await self.call_tool('filesystem', tool_name='write_file', tool_args={'path': path, 'content': content})
+        with open(path, 'w') as f:
+            f.write(content)
+        return 'Ok'
+        # return await self.call_tool('filesystem', tool_name='write_file', tool_args={'path': path, 'content': content})
 
     async def read_file(self, path: str):
-        return await self.call_tool('filesystem', tool_name='read_file', tool_args={'path': path})
+        with open(path, 'r') as f:
+            return f.read()
+        # return await self.call_tool('filesystem', tool_name='read_file', tool_args={'path': path})

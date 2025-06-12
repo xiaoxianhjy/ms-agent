@@ -61,4 +61,4 @@ class SplitTask(ToolBase):
         res = []
         for messages in result:
             res.append(messages[-1].content)
-        return res
+        return '\n\n'.join(res)
