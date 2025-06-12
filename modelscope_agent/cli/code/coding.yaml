@@ -1,8 +1,8 @@
 llm:
-  service: modelscope
-  model: Qwen/Qwen3-235B-A22B
-  modelscope_api_key:
-  modelscope_base_url: https://api-inference.modelscope.cn/v1/
+  service: openai
+  model: claude-3-7-sonnet-20250219
+  openai_api_key:
+  openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
 generation_config:
   top_p: 0.8
@@ -11,6 +11,8 @@ generation_config:
   stream: false
   extra_body:
     enable_thinking: false
+    dashscope_extend_params:
+      provider: idealab
 
 prompt:
   system: |
