@@ -32,7 +32,7 @@ prompt:
     3. The site will display specific categories, each category can showcase different product showcases
     4. Products can be clicked to purchase or favorite, so I need to design a complete favorites functionality
     5. Due to the complexity of the code engineering, I cannot complete this complex goal in a single file, so I need to split the tasks, which task should in charge of one single code file.
-    6. I should give a very detail design of the page functions and file locations, in case the sub tasks work abnormally
+    6. I should give very detail designs of the pages functions, relations(This is the most important thing!!), and file locations, in case the sub tasks work abnormally
     ...
     
     The subtasks I need to split are:
