@@ -4,4 +4,4 @@ tools:
     args:
       - "-y"
       - "@modelcontextprotocol/server-filesystem"
-      - "./output"
+      - "."

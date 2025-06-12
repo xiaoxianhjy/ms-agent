@@ -1,29 +1,28 @@
 import inspect
-from typing import Any
+from typing import Any, List
 
+from omegaconf import DictConfig
+
+from modelscope_agent.llm.openai_llm import OpenAI
+from modelscope_agent.llm.utils import Tool
 from modelscope_agent.utils.llm_utils import retry
 
 
-class Claude:
+class Claude(OpenAI):
 
-    def __init__(self, system):
-        self.system = system
-        self.client = OpenAI(
-            api_key=self.token,
-            base_url=self.base_url,
-        )
+    def __init__(self, config: DictConfig):
+        super().__init__(config, base_url=config.llm.claude_base_url, api_key=config.llm.claude_api_key)
 
-    @retry(max_attempts=5)
-    def generate(self, messages, model, tools=None, **kwargs) -> Any:
-        _e = None
-        parameters = inspect.signature(self.client.chat.completions.create).parameters
-        kwargs = {key: value for key, value in kwargs.items() if key in parameters}
-        completion = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-            parallel_tool_calls=False,
-            **kwargs
-        )
-        return completion
-
+    def format_tools(self, tools: List[Tool]):
+        if tools:
+            tools = [
+                {
+                    'name': f'{tool.get("server_name")}---{tool["tool_name"]}' if tool.get('server_name') else tool[
+                        'tool_name'],
+                    'description': tool['description'],
+                    'input_schema': tool['parameters']
+                } for tool in tools
+            ]
+        else:
+            tools = None
+        return tools

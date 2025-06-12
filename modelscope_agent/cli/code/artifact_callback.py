@@ -15,35 +15,38 @@ class ArtifactCallback(Callback):
         super().__init__(config)
         self.file_system = FileSystemTool(config)
 
+    async def on_task_begin(self, run_status: RunStatus, messages: List[Message]):
+        await self.file_system.connect()
+
     @staticmethod
     def extract_metadata(config: DictConfig, llm: LLM, messages: List[Message]):
         assert messages[0].role == 'system' and  messages[1].role == 'user'
-        _system = """Here gives a LLM system field, and a user query field, you need to extract the code file information of it, and wraps the final result in <result></result>.
+        _system = """You are a file name parser, I will give a user query field to you, you need to extract the code file name from it, and wraps the final result in <result></result>.
+Always remember your task is not generating the code, but parse the file name from the query.
 Here shows an example:
-system is: You are a code engineer, you should help me to write a code file, which is a part of a complex job. The rules you need to follow are: ...
 query is: You should write the index.js file, the file you need to use is main.css and nav.js, the interface in the code is ...
 
 Your answer should be: <result>index.js</result>   
 """
-        _query = (f'The input system is: {messages[0].content}\n\n'
-                  f'The input query is: {messages[1].content}\n\n'
-                  'Now give the code file name:\n')
+        _query = (f'The input query is: {messages[1].content}\n\n'
+                  'Now give the code file name and wraps with <result></result>:\n')
         _messages = [
             Message(role='system', content=_system),
             Message(role='user', content=_query)
         ]
         if getattr(config.generation_config, 'stream', False):
             message = None
-            for msg in llm.generate(messages):
+            for msg in llm.generate(_messages):
                 message = llm.merge_stream_message(message, msg)
 
             _response_message = message
         else:
-            _response_message = llm.generate(messages)
-        assert '<result>' in _response_message[-1].content and '</result>' in _response_message[-1].content
-        return re.findall(r'<result>(.*?)</result>', _response_message[-1].content)[0]
+            _response_message = llm.generate(_messages)
+        if not ('<result>' in _response_message.content and '</result>' in _response_message.content):
+            raise AssertionError(f'Could not extract information from {_response_message.content}')
+        return re.findall(r'<result>(.*?)</result>', _response_message.content)[0]
 
-    def after_generate_response(self, run_status: RunStatus, messages: List[Message]):
+    async def after_generate_response(self, run_status: RunStatus, messages: List[Message]):
         last_message_content = messages[-1].content
         if '</code>' in last_message_content:
             code = ''
@@ -63,8 +66,11 @@ Your answer should be: <result>index.js</result>
                         code += message.content
             if code:
                 code_file = self.extract_metadata(self.config, run_status.llm, messages)
-                self.file_system.create_directory('./output')
-                self.file_system.write_file(code_file, code)
+                try:
+                    # await self.file_system.create_directory('output')
+                    await self.file_system.write_file(code_file, code)
+                except Exception as e:
+                    print(e)
                 messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                   f'Task sunning successfully, '
                                                                   f'the code has been saved in the {code_file} file.'))

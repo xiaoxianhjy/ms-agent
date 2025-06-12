@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import json
 import sys
 from typing import List, Optional, Dict
 
@@ -94,9 +95,9 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 else:
                     self.callbacks.append(callbacks_mapping[_callback]())
 
-    def _loop_callback(self, point, messages: List[Message]):
+    async def _loop_callback(self, point, messages: List[Message]):
         for callback in self.callbacks:
-            getattr(callback, point)(self.run_status, messages)
+            await getattr(callback, point)(self.run_status, messages)
 
     async def _parallel_tool_call(self, messages: List[Message]):
         tool_call_result = await self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
@@ -106,7 +107,6 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 role='tool',
                 content=tool_call_result,
                 tool_call_id=tool_call_query['id'],
-                name=tool_call_query['tool_name']
             )
             messages.append(_new_message)
             logger.info(_new_message.content)
@@ -172,7 +172,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
     def log_output(self, content: str, tag='Default workflow'):
         for line in content.split('\n'):
-            logger.info(f'[{tag}] {line}')
+            for _line in line.split('\\n'):
+                logger.info(f'[{tag}] {_line}')
 
     async def run(self, prompt, **kwargs):
         try:
@@ -182,11 +183,11 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self._prepare_rag()
             tag = kwargs.get('tag', 'Default workflow')
             messages = self._prepare_messages(prompt)
-            self._loop_callback('on_task_begin', messages)
+            await self._loop_callback('on_task_begin', messages)
             if self.planer:
                 self.planer.generate_plan(messages, self.run_status)
             while not self.run_status.should_stop:
-                self._loop_callback('on_generate_response', messages)
+                await self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)
                 messages = self._update_plan(messages)
                 tools = await self.tool_manager.get_tools()
@@ -199,15 +200,15 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     self.log_output(_response_message.content, tag=tag)
                 if _response_message.tool_calls:
                     for tool_call in _response_message.tool_calls:
-                        self.log_output(str(tool_call), tag=tag)
-                self._loop_callback('after_generate_response', messages)
-                self._loop_callback('on_tool_call', messages)
+                        self.log_output(json.dumps(tool_call), tag=tag)
+                await self._loop_callback('after_generate_response', messages)
+                await self._loop_callback('on_tool_call', messages)
                 if messages[-1].tool_calls:
                     await self._parallel_tool_call(messages)
                 else:
                     self.run_status.should_stop = True
-                self._loop_callback('after_tool_call', messages)
-            self._loop_callback('on_task_end', messages)
+                await self._loop_callback('after_tool_call', messages)
+            await self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
             return messages
         except Exception as e:

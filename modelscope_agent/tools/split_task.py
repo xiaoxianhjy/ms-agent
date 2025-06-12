@@ -26,9 +26,19 @@ class SplitTask(ToolBase):
                                'you plan the framework, include code files and classes and functions, and give the detail '
                                'information to the system and query field of the subtask, then '
                                'let each subtask to write a single file',
-                parameters={
-                    'tasks': 'List type, each element is a dict, which contains two fields: system and query to start the sub task.',
-                }
+                parameters= {
+                        "type": "object",
+                        "properties": {
+                            "tasks": {
+                                "type": "array",
+                                "description": "Each element is a dict, which contains two fields: system and query to start the sub task."
+                            }
+                        },
+                        "required": [
+                            "tasks"
+                        ],
+                        "additionalProperties": False
+                    }
         )]
         }
 
@@ -43,7 +53,7 @@ class SplitTask(ToolBase):
             config = DictConfig(self.config)
             config.prompt.system = system
             config.prompt.query = query
-            # config.tools = DictConfig({})
+            delattr(config.tools, 'split_task')
             trust_remote_code = getattr(config, 'trust_remote_code', False)
             engine = SimpleEngine(config=config, trust_remote_code=trust_remote_code)
             sub_tasks.append(engine.run(query, tag=f'workflow {i}'))
@@ -51,4 +61,4 @@ class SplitTask(ToolBase):
         res = []
         for messages in result:
             res.append(messages[-1].content)
-        return result
+        return res

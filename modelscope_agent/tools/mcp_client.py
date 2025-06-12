@@ -66,7 +66,7 @@ class MCPClient(ToolBase):
     @staticmethod
     def print_tools(server_name: str, tools: ListToolsResult):
         tools = tools.tools
-        sep = "\n"
+        sep = ","
         if len(tools) > 10:
             tools = [tool.name for tool in tools][:10]
             logger.info(f'\nConnected to server "{server_name}" '

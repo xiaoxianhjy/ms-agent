@@ -27,15 +27,7 @@ class OpenAI(LLM):
         )
         self.args: Dict = OmegaConf.to_container(getattr(config, 'generation_config', {}))
 
-    @retry(max_attempts=3)
-    def generate(self, messages: List[Message], tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
-        parameters = inspect.signature(self.client.chat.completions.create).parameters
-        args = self.args.copy()
-        args.update(kwargs)
-        stream = args.get('stream', False)
-
-        args = {key: value for key, value in args.items() if key in parameters}
-
+    def format_tools(self, tools: List[Tool]):
         if tools:
             tools = [
                 {
@@ -49,7 +41,17 @@ class OpenAI(LLM):
             ]
         else:
             tools = None
-        completion = self._call_llm(messages, tools, **args)
+        return tools
+
+    @retry(max_attempts=3)
+    def generate(self, messages: List[Message], tools: List[Tool] = None, **kwargs) -> Message | Generator[Message, None, None]:
+        parameters = inspect.signature(self.client.chat.completions.create).parameters
+        args = self.args.copy()
+        args.update(kwargs)
+        stream = args.get('stream', False)
+
+        args = {key: value for key, value in args.items() if key in parameters}
+        completion = self._call_llm(messages, self.format_tools(tools), **args)
 
         # 考虑到复杂任务可能存在 单次调用llm生成不完整的情况。需要调用continue_gen判断是否应多次调用以获得完整输出
         if stream:
@@ -125,16 +127,19 @@ class OpenAI(LLM):
 
     def format_output_message(self, completion) -> Message:
         content = completion.choices[0].message.content or ''
-        reasoning_content = completion.choices[0].message.reasoning_content or ''
+        if hasattr(completion.choices[0].message, 'reasoning_content'):
+            reasoning_content = completion.choices[0].message.reasoning_content or ''
+        else:
+            reasoning_content = ''
         tool_calls = None
         if completion.choices[0].message.tool_calls:
             tool_calls = [ToolCall(
                     id=tool_call.id,
-                    index=tool_call.index,
+                    index=getattr(tool_call, 'index', idx),
                     type=tool_call.type,
                     arguments=tool_call.function.arguments,
                     tool_name=tool_call.function.name
-                ) for tool_call in completion.choices[0].message.tool_calls
+                ) for idx, tool_call in enumerate(completion.choices[0].message.tool_calls)
             ]
         return Message(role='assistant', content=content, reasoning_content=reasoning_content, tool_calls=tool_calls, id=completion.id)
 
