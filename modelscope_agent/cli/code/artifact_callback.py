@@ -64,12 +64,16 @@ Your answer should be: index.js
                     elif recording:
                         code += message.content
             if code:
-                code_file = self.extract_metadata(self.config, run_status.llm, messages)
-                await self.file_system.create_directory('output')
-                await self.file_system.write_file(os.path.join('output', code_file), code)
-                messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
-                                                                  f'Task sunning successfully, '
-                                                                  f'the code has been saved in the {code_file} file.'))
+                try:
+                    code_file = self.extract_metadata(self.config, run_status.llm, messages)
+                    await self.file_system.create_directory('output')
+                    await self.file_system.write_file(os.path.join('output', code_file), code)
+                    messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                                                                      f'Task sunning successfully, '
+                                                                      f'the code has been saved in the {code_file} file.'))
+                except Exception as e:
+                    messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                                                                      f'Task sunning failed with error {e} please consider retry generation.'))
             else:
                 messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                   f'Task sunning failed, code format error, please consider retry generation.'))

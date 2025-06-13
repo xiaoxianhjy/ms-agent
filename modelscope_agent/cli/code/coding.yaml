@@ -37,14 +37,27 @@ prompt:
     7. I should give very detail designs of the pages functions(especially the functions interact with other code files), file import relations(This is the most important thing!!), in case the sub tasks work abnormally
     ...
     
-    The subtasks I need to split are:
+    How many modules(subtasks) I should split?
+    A complex and well-use e-commerce website should have the following components:
+    * A main page 
+    * A carousel component
+    * A goods page
+    * A category page
+    * A detail page
+    * A cart page
+    * A collection page
+    * A ...
+    
+    Each page may contain several files to write, so the subtasks should be:
     * Write the main website page
+        - Subtask: Write index.html. This file needs to ...
         - Subtask: Write index.js. This file needs to write interfaces for... using CSS classes for...
     * Write the carousel part
         - Subtask: Write carousel component carousel.js. This file needs interfaces for... using CSS classes for...
     * Write the product display part
         - Subtask: Category page category.js. This file needs interfaces for... using CSS classes for...
         - Subtask: Product page good.js. This file needs interfaces for... using CSS classes for...
+    * ...some other subtasks listed here...
     * CSS part
         - Subtask: Write main.css. This file uses classes including...
     
@@ -54,11 +67,11 @@ prompt:
     [
       {
         "system": "You are a software engineer which helps me to finish a part of my job. You need to follow these instructions: 1. You should generate code by yourself, do not call `split_to_sub_task` anymore.\n 2. Do not give fake image addresses, you can use Unsplash like website links 3. You should keep the page as beautiful as you can 4. DO not add ``` around the code, wrap the code with <code></code>  5. Detail function and interface requirements here... 6. all files are flatten, always import file from the same directory 7. ...",
-        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is only one code file: the index.html page, the function design should be: 1. call buy in goods.js to buy goods... 2. ... "
+        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is only one code file: the index.html page, the function design should be: 1. call buy in goods.js to buy goods... 2. You should invoke goods.js to support goods list, category.js to ..., index.js... 3. You should invoke main.css... "
       },
       {
         "system": "You are a software engineer which helps me to finish a part of my job. You need to follow these instructions: 1. You should generate code by yourself, do not call `split_to_sub_task` anymore.\n 2. Do not give fake image addresses, you can use Unsplash like website links 4. DO not add ``` around the code, wrap the code with <code></code>  5. Detail function and interface requirements here... 6. all files are flatten, always import file from the same directory 7. ...",
-        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is only one code file: the goods.js code file, the interface design should be: 1. buy function which will be called in index.html to buy goods..."
+        "query": "The original query is to write an e-commerce website with Christmas atmosphere your part of job is only one code file: the goods.js code file, the interface design should be: 1. buy function which will be called in index.html to buy goods... 2. Your code will be invoked by index.html... 3. ..."
       },
     ...
     ]

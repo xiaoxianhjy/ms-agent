@@ -10,5 +10,5 @@ if __name__ == '__main__':
     cur_dir = os.path.dirname(cur_file)
     config = Config.from_task(os.path.join(cur_dir, 'coding.yaml'))
     engine = SimpleEngine(config=config, trust_remote_code=True)
-    query = 'Write a website of the LA city, with beautiful pictures and introductions.' # input('>>>Please input the query')
+    query = 'Write a website of the LA city, with beautiful pictures and introductions. At least contains good, culture, weather, traffic, hotel, attractions, gdp, festivals introduction.' # input('>>>Please input the query')
     asyncio.run(engine.run(query))
