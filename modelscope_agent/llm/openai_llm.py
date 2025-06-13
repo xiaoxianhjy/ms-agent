@@ -12,7 +12,7 @@ from modelscope_agent.utils.utils import assert_package_exist
 
 
 class OpenAI(LLM):
-    input_msg = {'role', 'content', 'tool_calls', 'partial', 'prefix'}
+    input_msg = {'role', 'content', 'tool_calls', 'partial', 'prefix', 'tool_call_id'}
 
     def __init__(self, config: DictConfig, base_url: Optional[str] = None,  api_key: Optional[str] = None):
         super().__init__(config)
@@ -174,6 +174,7 @@ class OpenAI(LLM):
         openai_messages = []
         for message in messages:
             if isinstance(message, Message):
+                message.content = message.content.strip()
                 message = message.to_dict()
 
             if message.get('tool_calls'):

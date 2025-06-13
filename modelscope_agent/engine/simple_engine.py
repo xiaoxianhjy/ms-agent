@@ -196,15 +196,15 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     _response_message = self.handle_stream_message()
                 else:
                     _response_message = self.llm.generate(messages, tools=tools)
-                messages.append(_response_message)
                 if _response_message.content:
                     self.log_output(_response_message.content, tag=tag)
                 if _response_message.tool_calls:
                     for tool_call in _response_message.tool_calls:
                         self.log_output(json.dumps(tool_call), tag=tag)
+                messages.append(_response_message)
                 await self._loop_callback('after_generate_response', messages)
                 await self._loop_callback('on_tool_call', messages)
-                if messages[-1].tool_calls:
+                if _response_message.tool_calls:
                     await self._parallel_tool_call(messages)
                 else:
                     self.run_status.should_stop = True
