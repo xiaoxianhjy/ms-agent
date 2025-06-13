@@ -1,3 +1,4 @@
+import os.path
 import re
 from typing import List
 
@@ -21,15 +22,15 @@ class ArtifactCallback(Callback):
     @staticmethod
     def extract_metadata(config: DictConfig, llm: LLM, messages: List[Message]):
         assert messages[0].role == 'system' and  messages[1].role == 'user'
-        _system = """You are a file name parser, I will give a user query field to you, you need to extract the code file name from it, and wraps the final result in <result></result>.
+        _system = """You are a file name parser, I will give a user query field to you, you need to extract the code file name from it.
 Always remember your task is not generating the code, but parse the file name from the query.
 Here shows an example:
 query is: You should write the index.js file, the file you need to use is main.css and nav.js, the interface in the code is ...
 
-Your answer should be: <result>index.js</result>   
+Your answer should be: index.js 
 """
         _query = (f'The input query is: {messages[1].content}\n\n'
-                  'Now give the code file name and wraps with <result></result>:\n')
+                  'Now give me the code file name without any other information:\n')
         _messages = [
             Message(role='system', content=_system),
             Message(role='user', content=_query)
@@ -42,9 +43,7 @@ Your answer should be: <result>index.js</result>
             _response_message = message
         else:
             _response_message = llm.generate(_messages)
-        if not ('<result>' in _response_message.content and '</result>' in _response_message.content):
-            raise AssertionError(f'Could not extract information from {_response_message.content}')
-        return re.findall(r'<result>(.*?)</result>', _response_message.content)[0]
+        return _response_message.content
 
     async def after_generate_response(self, run_status: RunStatus, messages: List[Message]):
         last_message_content = messages[-1].content
@@ -66,11 +65,8 @@ Your answer should be: <result>index.js</result>
                         code += message.content
             if code:
                 code_file = self.extract_metadata(self.config, run_status.llm, messages)
-                try:
-                    # await self.file_system.create_directory('output')
-                    await self.file_system.write_file(code_file, code)
-                except Exception as e:
-                    print(e)
+                await self.file_system.create_directory('output')
+                await self.file_system.write_file(os.path.join('output', code_file), code)
                 messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                   f'Task sunning successfully, '
                                                                   f'the code has been saved in the {code_file} file.'))
