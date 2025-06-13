@@ -72,9 +72,13 @@ Your answer should be: index.js
                                                                       f'Task sunning successfully, '
                                                                       f'the code has been saved in the {code_file} file.'))
                 except Exception as e:
+                    print(f'Original query: {messages[1].content}. Task sunning failed with error {e} please consider retry generation.', flush=True)
                     messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                       f'Task sunning failed with error {e} please consider retry generation.'))
             else:
+                print(
+                    f'Original query: {messages[1].content}. Task sunning failed, code format error, please consider retry generation.',
+                    flush=True)
                 messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                   f'Task sunning failed, code format error, please consider retry generation.'))
             run_status.should_stop = True

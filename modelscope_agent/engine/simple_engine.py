@@ -201,7 +201,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 if _response_message.tool_calls:
                     for tool_call in _response_message.tool_calls:
                         self.log_output(json.dumps(tool_call), tag=tag)
-                messages.append(_response_message)
+                if messages[-1] is not _response_message:
+                    messages.append(_response_message)
                 await self._loop_callback('after_generate_response', messages)
                 await self._loop_callback('on_tool_call', messages)
                 if _response_message.tool_calls:

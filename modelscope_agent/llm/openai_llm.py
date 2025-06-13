@@ -143,17 +143,20 @@ class OpenAI(LLM):
             ]
         return Message(role='assistant', content=content, reasoning_content=reasoning_content, tool_calls=tool_calls, id=completion.id)
 
+    def _merge_partial_message(self, messages, new_message):
+        messages[-1].reasoning_content += new_message.reasoning_content
+        messages[-1].content += new_message.content
+        if new_message.tool_calls:
+            if messages[-1].tool_calls:
+                messages[-1].tool_calls += new_message.tool_calls
+            else:
+                messages[-1].tool_calls = new_message.tool_calls
+
     def _continue_generate(self, messages: List[Message], new_message, tools: List[Tool] = None, **kwargs):
         # ref: https://bailian.console.aliyun.com/?tab=doc#/doc/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2862210.html&renderType=iframe
         # TODO: 移到dashscope_llm并找到真正openai的续写方式
         if messages[-1].to_dict().get('partial', False):
-            messages[-1].reasoning_content += new_message.reasoning_content
-            messages[-1].content += new_message.content
-            if new_message.tool_calls:
-                if messages[-1].tool_calls:
-                    messages[-1].tool_calls += new_message.tool_calls
-                else:
-                    messages[-1].tool_calls = new_message.tool_calls
+            self._merge_partial_message(messages, new_message)
         else:
             new_message.partial = True
             messages.append(new_message)
@@ -167,6 +170,10 @@ class OpenAI(LLM):
             print(f'finish_reason: {completion.choices[0].finish_reason}， continue generate.')
             completion = self._continue_generate(messages, new_message, tools, **kwargs)
             return self.continue_generate(messages, completion, tools, **kwargs)
+        elif messages[-1].to_dict().get('partial', False):
+            self._merge_partial_message(messages, new_message)
+            messages[-1].partial = False
+            return messages.pop(-1)
         else:
             return new_message
 

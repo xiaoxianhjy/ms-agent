@@ -1,6 +1,6 @@
 llm:
   service: openai
-  model: qwen-plus-latest
+  model: claude-3-7-sonnet-20250219
   openai_api_key:
   openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
@@ -71,7 +71,7 @@ prompt:
       {
         "system": "You are a software engineer which helps me to finish a part of my job. IMPORTANT: You should invoke other tasks' code files to finish the whole job. The code file you need to invoke will be given in the query.",
         "query": "The original query is to write an e-commerce website with Christmas atmosphere, your part of job is only one code file: the index.html page, you should follow instructions: 
-              1. Do not give fake image addresses, you can use Unsplash like website links 
+              1. Do not give fake image addresses, use links of Unsplash like website  
               2. You should make the page as beautiful as you can 
               3. DO not add ``` around the code, wrap the code with <code></code> 
               4. All files are flatten, always import other tasks' code file from the same directory
