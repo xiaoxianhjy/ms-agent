@@ -1,10 +1,9 @@
 import os.path
-import re
 from typing import List
 
 from omegaconf import DictConfig
 
-from modelscope_agent.callbacks import Callback, RunStatus
+from modelscope_agent.callbacks import Callback, Runtime
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
@@ -15,8 +14,9 @@ class ArtifactCallback(Callback):
     def __init__(self, config: DictConfig):
         super().__init__(config)
         self.file_system = FileSystemTool(config)
+        self.code = False
 
-    async def on_task_begin(self, run_status: RunStatus, messages: List[Message]):
+    async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
         await self.file_system.connect()
 
     @staticmethod
@@ -45,7 +45,7 @@ Your answer should be: index.js
             _response_message = llm.generate(_messages)
         return _response_message.content
 
-    async def after_generate_response(self, run_status: RunStatus, messages: List[Message]):
+    async def after_generate_response(self, runtime: Runtime, messages: List[Message]):
         last_message_content = messages[-1].content
         if '</code>' in last_message_content:
             code = ''
@@ -64,21 +64,27 @@ Your answer should be: index.js
                     elif recording:
                         code += message.content
             if code:
+                self.code = True
                 try:
-                    code_file = self.extract_metadata(self.config, run_status.llm, messages)
+                    code_file = self.extract_metadata(self.config, runtime.llm, messages)
                     await self.file_system.create_directory('output')
                     await self.file_system.write_file(os.path.join('output', code_file), code)
                     messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                       f'Task sunning successfully, '
                                                                       f'the code has been saved in the {code_file} file.'))
                 except Exception as e:
-                    print(f'Original query: {messages[1].content}. Task sunning failed with error {e} please consider retry generation.', flush=True)
-                    messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                    raise RuntimeError(f'Original query: {messages[1].content}. Task sunning failed with error {e} please consider retry generation.', flush=True)
+                    messages.append(Message(role='user', content=f'Original query: {messages[1].content}'
                                                                       f'Task sunning failed with error {e} please consider retry generation.'))
             else:
-                print(
+                raise RuntimeError(
                     f'Original query: {messages[1].content}. Task sunning failed, code format error, please consider retry generation.',
                     flush=True)
-                messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                messages.append(Message(role='user', content=f'Original query: {messages[1].content}'
                                                                   f'Task sunning failed, code format error, please consider retry generation.'))
-            run_status.should_stop = True
+            runtime.should_stop = True
+
+    async def on_task_end(self, runtime: Runtime, messages: List[Message]):
+        if runtime.tag != 'Default workflow':
+            if not self.code:
+                raise RuntimeError()

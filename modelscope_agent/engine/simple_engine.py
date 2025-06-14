@@ -7,7 +7,7 @@ from typing import List, Optional, Dict
 from omegaconf import DictConfig
 
 from modelscope_agent.callbacks import Callback
-from modelscope_agent.callbacks import RunStatus
+from modelscope_agent.callbacks import Runtime
 from modelscope_agent.callbacks import callbacks_mapping
 from modelscope_agent.config import Config
 from modelscope_agent.engine.memory import memory_mapping
@@ -61,7 +61,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self.config = Config.from_task(task_dir_or_id, env)
         self.llm = LLM.from_config(self.config)
         self.callbacks = []
-        self.run_status = RunStatus(llm=self.llm)
+        self.runtime = Runtime(llm=self.llm)
         self.trust_remote_code = kwargs.get('trust_remote_code', False)
         self.config.trust_remote_code = self.trust_remote_code
         self._register_callback_from_config()
@@ -97,7 +97,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
     async def _loop_callback(self, point, messages: List[Message]):
         for callback in self.callbacks:
-            await getattr(callback, point)(self.run_status, messages)
+            await getattr(callback, point)(self.runtime, messages)
 
     async def _parallel_tool_call(self, messages: List[Message]):
         tool_call_result = await self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
@@ -160,7 +160,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
     def _update_plan(self, messages: List[Message]):
         if self.planer:
-            self.planer.update_plan(self.llm, messages, self.run_status)
+            self.planer.update_plan(self.llm, messages, self.runtime)
         return messages
 
     def handle_stream_message(self):
@@ -183,11 +183,12 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self._prepare_planer()
             self._prepare_rag()
             tag = kwargs.get('tag', 'Default workflow')
+            self.runtime.tag = tag
             messages = self._prepare_messages(prompt)
             await self._loop_callback('on_task_begin', messages)
             if self.planer:
-                self.planer.generate_plan(messages, self.run_status)
-            while not self.run_status.should_stop:
+                self.planer.generate_plan(messages, self.runtime)
+            while not self.runtime.should_stop:
                 await self._loop_callback('on_generate_response', messages)
                 messages = self._refine_memory(messages)
                 messages = self._update_plan(messages)
@@ -208,7 +209,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 if _response_message.tool_calls:
                     await self._parallel_tool_call(messages)
                 else:
-                    self.run_status.should_stop = True
+                    self.runtime.should_stop = True
                 await self._loop_callback('after_tool_call', messages)
             await self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
