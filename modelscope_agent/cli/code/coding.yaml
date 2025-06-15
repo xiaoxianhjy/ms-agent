@@ -1,6 +1,6 @@
 llm:
   service: openai
-  model: claude-3-7-sonnet-20250219
+  model: qwen-plus-latest
   openai_api_key:
   openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
@@ -9,8 +9,8 @@ generation_config:
   temperature: 0.5
   top_k: 50
   stream: false
-  max_completion_tokens: 65536
-  max_tokens: 131072
+  max_completion_tokens: 8192
+  max_tokens: 16384
   extra_body:
     enable_thinking: false
 
@@ -84,6 +84,7 @@ prompt:
               8. Link to invoke cart.js to ..."
               9. Use javascript instead of node.js, do not use ES6 modules
               10. Never give dummy information!
+              11. Using more html to build pages
       },
     ...
     ]

@@ -2,11 +2,13 @@ import os.path
 from typing import List
 
 from omegaconf import DictConfig
-
+from modelscope_agent.utils import get_logger
 from modelscope_agent.callbacks import Callback, Runtime
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
+
+logger = get_logger()
 
 
 class ArtifactCallback(Callback):
@@ -45,8 +47,23 @@ Your answer should be: index.js
             _response_message = llm.generate(_messages)
         return _response_message.content
 
+    def hot_fix_code_piece(self, last_message_content):
+        last_message_content = last_message_content.replace('<script>', '<code>')
+        last_message_content = last_message_content.replace('</script>', '</code>')
+        last_message_content = last_message_content.replace('```html\n', '<code>\n')
+        last_message_content = last_message_content.replace('```js\n', '<code>\n')
+        last_message_content = last_message_content.replace('```javascript\n', '<code>\n')
+        last_message_content = last_message_content.replace('```css\n', '<code>\n')
+        last_message_content = last_message_content.replace('```', '</code>')
+        last_message_content = last_message_content.replace('<code>\n<code>', '<code>')
+        last_message_content = last_message_content.replace('</code>\n</code>', '</code>')
+        return last_message_content
+
     async def after_generate_response(self, runtime: Runtime, messages: List[Message]):
-        last_message_content = messages[-1].content
+        if runtime.tag == 'Default workflow':
+            return
+        last_message_content = self.hot_fix_code_piece(messages[-1].content)
+        messages[-1].content = last_message_content
         if '</code>' in last_message_content:
             code = ''
             recording = False
@@ -73,13 +90,9 @@ Your answer should be: index.js
                                                                       f'Task sunning successfully, '
                                                                       f'the code has been saved in the {code_file} file.'))
                 except Exception as e:
-                    raise RuntimeError(f'Original query: {messages[1].content}. Task sunning failed with error {e} please consider retry generation.', flush=True)
                     messages.append(Message(role='user', content=f'Original query: {messages[1].content}'
                                                                       f'Task sunning failed with error {e} please consider retry generation.'))
             else:
-                raise RuntimeError(
-                    f'Original query: {messages[1].content}. Task sunning failed, code format error, please consider retry generation.',
-                    flush=True)
                 messages.append(Message(role='user', content=f'Original query: {messages[1].content}'
                                                                   f'Task sunning failed, code format error, please consider retry generation.'))
             runtime.should_stop = True
@@ -87,4 +100,4 @@ Your answer should be: index.js
     async def on_task_end(self, runtime: Runtime, messages: List[Message]):
         if runtime.tag != 'Default workflow':
             if not self.code:
-                raise RuntimeError()
+                logger.error(f'Code save failed in task: {runtime.tag}')
