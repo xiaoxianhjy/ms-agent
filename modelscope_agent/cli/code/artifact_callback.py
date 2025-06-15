@@ -88,11 +88,13 @@ Your answer should be: index.js
                                                                       f'Task sunning successfully, '
                                                                       f'the code has been saved in the {code_file} file.'))
                 except Exception as e:
-                    messages.append(Message(role='user', content=f'Original query: {messages[1].content}'
-                                                                      f'Task sunning failed with error {e} please consider retry generation.'))
+                    result = f'Original query: {messages[1].content} Task sunning failed with error {e} please consider retry generation.'
+                    logger.error(result)
+                    messages.append(Message(role='user', content=result))
             else:
-                messages.append(Message(role='user', content=f'Original query: {messages[1].content}'
-                                                                  f'Task sunning failed, code format error, please consider retry generation.'))
+                result = f'Original query: {messages[1].content} Task sunning failed, code format error, please consider retry generation.'
+                logger.error(result)
+                messages.append(Message(role='user', content=result))
             runtime.should_stop = True
 
     async def on_task_end(self, runtime: Runtime, messages: List[Message]):
