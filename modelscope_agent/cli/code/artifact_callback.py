@@ -48,8 +48,6 @@ Your answer should be: index.js
         return _response_message.content
 
     def hot_fix_code_piece(self, last_message_content):
-        last_message_content = last_message_content.replace('<script>', '<code>')
-        last_message_content = last_message_content.replace('</script>', '</code>')
         last_message_content = last_message_content.replace('```html\n', '<code>\n')
         last_message_content = last_message_content.replace('```js\n', '<code>\n')
         last_message_content = last_message_content.replace('```javascript\n', '<code>\n')

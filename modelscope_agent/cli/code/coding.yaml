@@ -21,7 +21,7 @@ prompt:
     1. What is the original requirement? Does it involve frontend or backend code? What programming language is needed? 
     2. How many modules should it be split into? What functions are needed for each module? How to combine each file?
     3. Due to code complexity, you need to inform your subtasks that code blocks need to be wrapped with <code></code> tags, as this code will subsequently be stored in local files.
-    4. You should **MENTION CLEARLY** the detailed functions and interfaces your subtasks should follow, and relations between each module/file, in case they do duplicate works.
+    4. You should **MENTION CLEARLY** the detailed functions and interfaces your subtasks should follow, the page language to use, and relations between each module/file, in case they do duplicate works.
     5. Beauty and Functionality is the most important thing, Never use invalid image links, use images from unsplash-like websites
     6. One task only writes one code file, all files should be put in one folder, so no parent folder name should be given
     
@@ -37,6 +37,7 @@ prompt:
     5. I should give very detail designs of the pages functions(especially the functions interact with other code files), file import relations(This is the most important thing!!), in case the sub tasks work abnormally
     6. I should specify the programming language of all the subtasks
     7. I should tell the subtasks to use images from unsplash-like websites
+    8. User didn't give the page language, I should tell the subtasks to use English because the query is English
     ...
     
     How many modules(subtasks) I should split?
@@ -74,10 +75,10 @@ prompt:
     [
       {
         "system": "You are a software engineer which helps me to finish a part of my job. IMPORTANT: You should invoke other tasks' code files to finish the whole job. The code file you need to invoke will be given in the query.",
-        "query": "The original query is to write an e-commerce website with Christmas atmosphere, your part of job is only one code file: the index.html page, you should follow instructions: 
+        "query": "The original query is to write an e-commerce website with Christmas atmosphere, your part of job is only one code file: the index.html page, DO NOT generate code of other files. you should follow instructions: 
               1. Do not give fake image addresses! use links of Unsplash like website  
               2. You should make the page as beautiful as you can 
-              3. DO not add ``` around the code, wrap the code with <code></code> 
+              3. DO not add ``` around the code, DO NOT give multiple segments of code, wrap the final code with <code></code>
               5. All files are in one folder, always import other tasks' code file from the same directory!
               6. Link to purchase.js to fulfill the purchase section
               7. Link to goods.js to fulfill the goods section
@@ -85,6 +86,7 @@ prompt:
               9. Use javascript instead of node.js, do not use ES6 modules
               10. Never give dummy information!
               11. Using more html to build pages
+              12. Use English in pages
       },
     ...
     ]

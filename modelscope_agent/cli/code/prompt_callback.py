@@ -75,4 +75,5 @@ Here are some specific instructions for frontend design:
                 system = task['system']
                 system = system + self._prompt
                 task['system'] = system
-            tool_call['arguments'] = tool_args
+            # some model require arguments to be a string, for the next llm_call's input
+            tool_call['arguments'] = json.dumps(tool_args)
