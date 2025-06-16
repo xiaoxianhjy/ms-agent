@@ -25,11 +25,11 @@ class ArtifactCallback(Callback):
     def extract_metadata(config: DictConfig, llm: LLM, messages: List[Message]):
         assert messages[0].role == 'system' and  messages[1].role == 'user'
         _system = """You are a file name parser, I will give a user query field to you, you need to extract the code file name from it.
-Always remember your task is not generating the code, but parse the file name from the query.
+Always remember your task is not generating the code, but parse the relative file name from the query.
 Here shows an example:
-query is: You should write the index.js file, the file you need to use is main.css and nav.js, the interface in the code is ...
+query is: You should write the js/index.js file, the file you need to use is main.css and js/nav.js, the interface in the code is ...
 
-Your answer should be: index.js 
+Your answer should be: js/index.js 
 """
         _query = (f'The input query is: {messages[1].content}\n\n'
                   'Now give me the code file name without any other information:\n')
@@ -82,7 +82,8 @@ Your answer should be: index.js
                 self.code = True
                 try:
                     code_file = self.extract_metadata(self.config, runtime.llm, messages)
-                    await self.file_system.create_directory('output')
+                    dirs = os.path.dirname(code_file)
+                    await self.file_system.create_directory(os.path.join('output', dirs))
                     await self.file_system.write_file(os.path.join('output', code_file), code)
                     messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
                                                                       f'Task sunning successfully, '
