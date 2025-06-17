@@ -52,7 +52,6 @@ class SplitTask(ToolBase):
             query = task['query']
             config = DictConfig(self.config)
             config.prompt.system = system
-            config.prompt.query = query
             delattr(config.tools, 'split_task')
             trust_remote_code = getattr(config, 'trust_remote_code', False)
             engine = SimpleEngine(config=config, trust_remote_code=trust_remote_code)
