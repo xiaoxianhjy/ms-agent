@@ -2,7 +2,7 @@ from typing import List
 
 from omegaconf import DictConfig
 
-from .runtime import Runtime
+from modelscope_agent.engine.runtime import Runtime
 from ..llm.utils import Message
 
 

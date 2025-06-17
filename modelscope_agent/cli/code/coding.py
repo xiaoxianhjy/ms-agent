@@ -1,14 +1,14 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
 import os
-
 from modelscope_agent.config import Config
-from modelscope_agent.engine.simple_engine import SimpleEngine
+from modelscope_agent.workflow.chain_workflow import ChainWorkflow
 
 if __name__ == '__main__':
+    query = '写个简单的demo网站，别太复杂' # input('>>>Please input the query')
     cur_file = __file__
     cur_dir = os.path.dirname(cur_file)
-    config = Config.from_task(os.path.join(cur_dir, 'coding.yaml'))
-    engine = SimpleEngine(config=config, trust_remote_code=True)
-    query = '做一个精美的网站，介绍下中国各菜系的历史和菜品' # input('>>>Please input the query')
+    config = Config.from_task(os.path.join(cur_dir, 'workflow.yaml'))
+    engine = ChainWorkflow(config=config)
     asyncio.run(engine.run(query))
+

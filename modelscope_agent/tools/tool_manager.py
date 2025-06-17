@@ -3,8 +3,9 @@ import json
 from typing import List, Tuple, Dict, Any
 
 from modelscope_agent.tools.base import ToolBase
-from modelscope_agent.tools.split_task import SplitTask
+from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.tools.mcp_client import MCPClient
+from modelscope_agent.tools.split_task import SplitTask
 
 
 class ToolManager:
@@ -15,8 +16,9 @@ class ToolManager:
         self.extra_tools: List[ToolBase] = []
         self.has_split_task_tool = False
         if hasattr(config, 'tools') and hasattr(config.tools, 'split_task'):
-            self.split_task = SplitTask(config)
-            self.has_split_task_tool = True
+            self.extra_tools.append(SplitTask(config))
+        if hasattr(config, 'tools') and hasattr(config.tools, 'file_system'):
+            self.extra_tools.append(FileSystemTool(config))
         self._tool_index = {}
 
     def register_tool(self, tool: ToolBase):
@@ -24,16 +26,12 @@ class ToolManager:
 
     async def connect(self):
         await self.servers.connect()
-        if self.has_split_task_tool:
-            await self.split_task.connect()
         for tool in self.extra_tools:
             await tool.connect()
         await self.reindex_tool()
 
     async def cleanup(self):
         await self.servers.cleanup()
-        if self.has_split_task_tool:
-            await self.split_task.cleanup()
         for tool in self.extra_tools:
             await tool.cleanup()
 
@@ -47,10 +45,6 @@ class ToolManager:
         mcps = await self.servers.get_tools()
         for server_name, tool_list in mcps.items():
             extend_tool(self.servers, server_name, tool_list)
-        if  self.has_split_task_tool:
-            loop_tools = await self.split_task.get_tools()
-            for server_name, tool_list in loop_tools.items():
-                extend_tool(self.split_task, server_name, tool_list)
         for extra_tool in self.extra_tools:
             tools = await extra_tool.get_tools()
             for server_name, tool_list in tools.items():

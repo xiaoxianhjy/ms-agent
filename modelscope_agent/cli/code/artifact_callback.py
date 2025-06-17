@@ -1,12 +1,13 @@
 import os.path
+import re
 from typing import List
 
 from omegaconf import DictConfig
-from modelscope_agent.utils import get_logger
-from modelscope_agent.callbacks import Callback, Runtime
-from modelscope_agent.llm.llm import LLM
+from modelscope_agent.callbacks import Callback
+from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
+from modelscope_agent.utils import get_logger
 
 logger = get_logger()
 
@@ -22,30 +23,14 @@ class ArtifactCallback(Callback):
         await self.file_system.connect()
 
     @staticmethod
-    def extract_metadata(config: DictConfig, llm: LLM, messages: List[Message]):
-        assert messages[0].role == 'system' and  messages[1].role == 'user'
-        _system = """You are a file name parser, I will give a user query field to you, you need to extract the code file name from it.
-Always remember your task is not generating the code, but parse the relative file name from the query.
-Here shows an example:
-query is: You should write the js/index.js file, the file you need to use is main.css and js/nav.js, the interface in the code is ...
-
-Your answer should be: js/index.js 
-"""
-        _query = (f'The input query is: {messages[1].content}\n\n'
-                  'Now give me the code file name without any other information:\n')
-        _messages = [
-            Message(role='system', content=_system),
-            Message(role='user', content=_query)
-        ]
-        if getattr(config.generation_config, 'stream', False):
-            message = None
-            for msg in llm.generate(_messages):
-                message = llm.merge_stream_message(message, msg)
-
-            _response_message = message
+    def extract_metadata(messages: List[Message]):
+        content = '\n\n'.join(m.content for m in messages)
+        pattern = r'<output>(.*?)</output>'
+        match = re.search(pattern, content)
+        if match:
+            return match.group(1)
         else:
-            _response_message = llm.generate(_messages)
-        return _response_message.content
+            return None
 
     def hot_fix_code_piece(self, last_message_content):
         last_message_content = last_message_content.replace('```html\n', '<code>\n')
@@ -59,6 +44,8 @@ Your answer should be: js/index.js
 
     async def after_generate_response(self, runtime: Runtime, messages: List[Message]):
         if runtime.tag == 'Default workflow':
+            return
+        if messages[-1].tool_calls:
             return
         last_message_content = self.hot_fix_code_piece(messages[-1].content)
         messages[-1].content = last_message_content
@@ -81,24 +68,30 @@ Your answer should be: js/index.js
             if code:
                 self.code = True
                 try:
-                    code_file = self.extract_metadata(self.config, runtime.llm, messages)
+                    code_file = self.extract_metadata(messages)
                     dirs = os.path.dirname(code_file)
                     await self.file_system.create_directory(os.path.join('output', dirs))
                     await self.file_system.write_file(os.path.join('output', code_file), code)
-                    messages.append(Message(role='assistant', content=f'Original query: {messages[1].content}'
+                    messages.append(Message(role='assistant', content=f'[OK] <file:{code_file}>Original query: {messages[1].content}'
                                                                       f'Task sunning successfully, '
                                                                       f'the code has been saved in the {code_file} file.'))
                 except Exception as e:
-                    result = f'Original query: {messages[1].content} Task sunning failed with error {e} please consider retry generation.'
+                    result = f'[Failed] Original query: {messages[1].content} Task sunning failed with error {e} please consider retry generation.'
                     logger.error(result)
                     messages.append(Message(role='user', content=result))
             else:
-                result = f'Original query: {messages[1].content} Task sunning failed, code format error, please consider retry generation.'
+                result = f'[Failed] Original query: {messages[1].content} Task sunning failed, code format error, please consider retry generation.'
                 logger.error(result)
                 messages.append(Message(role='user', content=result))
             runtime.should_stop = True
+        else:
+            result = f'[Failed] Original query: {messages[1].content} Task sunning failed, code format error, please consider retry generation.'
+            logger.error(result)
+            messages.append(Message(role='user', content=result))
 
     async def on_task_end(self, runtime: Runtime, messages: List[Message]):
+        if messages[-1].tool_calls:
+            return
         if runtime.tag != 'Default workflow':
             if not self.code:
                 logger.error(f'Code save failed in task: {runtime.tag}')

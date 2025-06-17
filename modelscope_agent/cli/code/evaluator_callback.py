@@ -2,7 +2,8 @@ from typing import List
 
 from omegaconf import DictConfig
 
-from modelscope_agent.callbacks import Callback, Runtime
+from modelscope_agent.callbacks import Callback
+from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
 
@@ -11,7 +12,7 @@ logger = get_logger()
 
 class EvaluatorCallback(Callback):
 
-    _system = """You are a software architecture evaluator whose job is to assess whether the software architecture is reasonable. The actual workflow is:
+    _arch_review_system = """You are a software architecture evaluator whose job is to assess whether the software architecture is reasonable. The actual workflow is:
 
 1. An original requirement is given
 2. A software architect provides the modules that need to be designed and breaks these modules down into different subtasks for completion, with each subtask responsible for writing one specific file
@@ -36,21 +37,17 @@ Now Begin:
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
-        self.argue_ended = False
+        self.arch_review_ended = False
         self.argue_round = 0
 
-    async def after_generate_response(self, runtime: Runtime, messages: List[Message]):
-        if runtime.tag != 'Default workflow':
-            self.argue_ended = True
-            return
-
-        if len(messages) > 3:
+    async def do_arch_review(self, runtime: Runtime, messages: List[Message]):
+        if not self.arch_review_ended and len(messages) > 3:
             temp = messages[:2] + messages[-1:]
             messages.clear()
             messages.extend(temp)
 
         if self.argue_round >= 1:
-            self.argue_ended = True
+            self.arch_review_ended = True
             return
 
         query = (f'The original requirement is: \n```text\n{messages[1].content}\n```\n\n '
@@ -58,7 +55,7 @@ Now Begin:
                  f'The task arguments is : \n```json\n{messages[2].tool_calls[0]}\n```\n\n')
 
         _messages = [
-            Message(role='system', content=self._system),
+            Message(role='system', content=self._arch_review_system),
             Message(role='user', content=query),
         ]
         if getattr(self.config.generation_config, 'stream', False):
@@ -74,11 +71,19 @@ Now Begin:
             for _line in line.split('\\n'):
                 logger.info(f'[Evaluator] {_line}')
 
-        if '<OK>' in _response_message.content or self.argue_ended:
-            self.argue_ended = True
+        if '<OK>' in _response_message.content or self.arch_review_ended:
+            self.arch_review_ended = True
         else:
             messages[-1].tool_calls = None
             messages.append(Message(role='user', content=_response_message.content))
 
+
+    async def after_generate_response(self, runtime: Runtime, messages: List[Message]):
+        if runtime.tag != 'Default workflow':
+            self.arch_review_ended = True
+            return
+
+        await self.do_arch_review(runtime, messages)
+
     async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
-        runtime.should_stop = runtime.should_stop and self.argue_ended
+        runtime.should_stop = runtime.should_stop and self.arch_review_ended

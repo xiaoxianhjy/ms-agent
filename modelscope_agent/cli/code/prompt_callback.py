@@ -3,7 +3,8 @@ from typing import List
 
 from omegaconf import DictConfig
 
-from modelscope_agent.callbacks import Callback, Runtime
+from modelscope_agent.callbacks import Callback
+from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
 

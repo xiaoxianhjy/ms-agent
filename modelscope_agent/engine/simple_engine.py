@@ -2,14 +2,15 @@ import importlib
 import inspect
 import json
 import sys
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 
 from omegaconf import DictConfig
 
 from modelscope_agent.callbacks import Callback
-from modelscope_agent.callbacks import Runtime
+from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.callbacks import callbacks_mapping
 from modelscope_agent.config import Config
+from modelscope_agent.engine.base import Engine
 from modelscope_agent.engine.memory import memory_mapping
 from modelscope_agent.engine.plan.base import Planer
 from modelscope_agent.engine.plan.utils import planer_mapping
@@ -21,7 +22,7 @@ from modelscope_agent.tools import ToolManager
 from modelscope_agent.utils.logger import logger
 
 
-class SimpleEngine:
+class SimpleEngine(Engine):
     """Engine running for single-agent/multi-agent tasks.
 
     Args:
@@ -55,10 +56,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                  config: Optional[DictConfig]=None,
                  env: Optional[Dict[str, str]]=None,
                  **kwargs):
-        if task_dir_or_id is None:
-            self.config = config
-        else:
-            self.config = Config.from_task(task_dir_or_id, env)
+        super().__init__(task_dir_or_id, config, env)
         self.llm = LLM.from_config(self.config)
         self.callbacks = []
         self.runtime = Runtime(llm=self.llm)
@@ -90,7 +88,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                     module_classes = {name: cls for name, cls in inspect.getmembers(callback_file, inspect.isclass)}
                     for name, cls in module_classes.items():
                         # Find cls which base class is `Callback`
-                        if cls.__bases__[0] is Callback:
+                        if cls.__bases__[0] is Callback and cls.__module__ == _callback:
                             self.callbacks.append(cls(self.config))
                 else:
                     self.callbacks.append(callbacks_mapping[_callback]())
@@ -125,10 +123,12 @@ You are a robot assistant. You will be given many tools to help you complete tas
         else:
             return query
 
-    def _prepare_messages(self, prompt):
+    def _prepare_messages(self, inputs: Union[List[Message], str]):
+        if isinstance(inputs, list):
+            return inputs
         messages = [
             Message(role='system', content=self.config.prompt.system or self.DEFAULT_SYSTEM_EN),
-            Message(role='user', content=prompt or self.config.prompt.query),
+            Message(role='user', content=inputs or self.config.prompt.query),
         ]
         messages[1].content = self._query_documents(messages[1].content)
         return messages
@@ -176,7 +176,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             for _line in line.split('\\n'):
                 logger.info(f'[{tag}] {_line}')
 
-    async def run(self, prompt, **kwargs):
+    async def run(self, inputs, **kwargs):
         try:
             await self._prepare_tools()
             self._prepare_memory()
@@ -184,7 +184,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             self._prepare_rag()
             tag = kwargs.get('tag', 'Default workflow')
             self.runtime.tag = tag
-            messages = self._prepare_messages(prompt)
+            messages = self._prepare_messages(inputs)
             await self._loop_callback('on_task_begin', messages)
             if self.planer:
                 self.planer.generate_plan(messages, self.runtime)

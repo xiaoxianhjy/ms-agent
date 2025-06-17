@@ -1,0 +1,30 @@
+coding:
+  next:
+    - evaluate
+  config: coding.yaml
+  engine:
+    name: SimpleEngine
+    kwargs:
+      trust_remote_code: true
+
+evaluate:
+  next:
+    - rewrite_config
+  engine:
+    name: CodeEngine
+    kwargs:
+      code_file: code_review
+
+rewrite_config:
+  next:
+    - refine
+  engine:
+    name: CodeEngine
+    kwargs:
+      code_file: rewrite_config
+
+refine:
+  engine:
+    name: SimpleEngine
+    kwargs:
+      trust_remote_code: true

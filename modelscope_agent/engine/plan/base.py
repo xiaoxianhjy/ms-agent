@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import ConfigDict
 
-from modelscope_agent.callbacks import Runtime
+from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.llm.utils import Message
 
 
