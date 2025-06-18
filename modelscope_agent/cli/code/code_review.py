@@ -19,7 +19,7 @@ class CodeReview(Code):
         4. Pay attention to whether there are modules in the code that cannot run
         5. Pay attention to parts in the code that do not meet the specific sub-requirements of code tasks
         6. If the code file does not exist, mention that the code need to be regenerated.
-        7. Pay attention to compatibility issues between the code and other code files that prevent them from running together
+        7. Pay attention to whether the code file import structures follow the PRD and architecture design
         8. You must clearly declare what file are you analysing, e.g. `The evaluate result of code file js/a.js: <your result here>\n\n`
 
         Note: You do not need to fix these errors, just specifically point out the problems.
@@ -95,7 +95,7 @@ class CodeReview(Code):
         all_local_files = '\n'.join(self.get_all_files('output'))
         inputs.append(Message(role='user', content=(f'Here is the code checking result: \n\n{tool_result}\n\n'
                                                       f'Here are the local files exist: \n\n{all_local_files}\n\n'
-                                                      'You need to conduct a complete analysis based on the results to '
+                                                      'You need to conduct/generate a complete analysis based on the results to '
                                                       'identify which code needs to be corrected. '
                                                       'Then call `split_to_sub_task` again to correct the abnormal code. '
                                                       'But You need to pay attention to mention the subtask to '

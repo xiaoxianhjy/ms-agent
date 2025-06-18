@@ -2,6 +2,7 @@ import importlib
 import inspect
 import json
 import sys
+from copy import deepcopy
 from typing import List, Optional, Dict, Union
 
 from omegaconf import DictConfig
@@ -19,6 +20,7 @@ from modelscope_agent.llm.utils import Message
 from modelscope_agent.rag.base import Rag
 from modelscope_agent.rag.utils import rag_mapping
 from modelscope_agent.tools import ToolManager
+from modelscope_agent.utils.llm_utils import retry
 from modelscope_agent.utils.logger import logger
 
 
@@ -176,6 +178,37 @@ You are a robot assistant. You will be given many tools to help you complete tas
             for _line in line.split('\\n'):
                 logger.info(f'[{tag}] {_line}')
 
+    @retry(max_attempts=2)
+    async def step(self, messages: List[Message], tag):
+        messages = deepcopy(messages)
+        messages = self._refine_memory(messages)
+        messages = self._update_plan(messages)
+        await self._loop_callback('on_generate_response', messages)
+        tools = await self.tool_manager.get_tools()
+        if getattr(self.config.generation_config, 'stream', False):
+            _response_message = self.handle_stream_message()
+        else:
+            _response_message = self.llm.generate(messages, tools=tools)
+
+        if _response_message.content:
+            self.log_output(_response_message.content, tag=tag)
+        if _response_message.tool_calls:
+            for tool_call in _response_message.tool_calls:
+                self.log_output(json.dumps(tool_call), tag=tag)
+
+        if messages[-1] is not _response_message:
+            messages.append(_response_message)
+
+        await self._loop_callback('after_generate_response', messages)
+        await self._loop_callback('on_tool_call', messages)
+
+        if _response_message.tool_calls:
+            await self._parallel_tool_call(messages)
+        else:
+            self.runtime.should_stop = True
+        await self._loop_callback('after_tool_call', messages)
+        return messages
+
     async def run(self, inputs, **kwargs):
         try:
             await self._prepare_tools()
@@ -189,28 +222,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             if self.planer:
                 self.planer.generate_plan(messages, self.runtime)
             while not self.runtime.should_stop:
-                await self._loop_callback('on_generate_response', messages)
-                messages = self._refine_memory(messages)
-                messages = self._update_plan(messages)
-                tools = await self.tool_manager.get_tools()
-                if getattr(self.config.generation_config, 'stream', False):
-                    _response_message = self.handle_stream_message()
-                else:
-                    _response_message = self.llm.generate(messages, tools=tools)
-                if _response_message.content:
-                    self.log_output(_response_message.content, tag=tag)
-                if _response_message.tool_calls:
-                    for tool_call in _response_message.tool_calls:
-                        self.log_output(json.dumps(tool_call), tag=tag)
-                if messages[-1] is not _response_message:
-                    messages.append(_response_message)
-                await self._loop_callback('after_generate_response', messages)
-                await self._loop_callback('on_tool_call', messages)
-                if _response_message.tool_calls:
-                    await self._parallel_tool_call(messages)
-                else:
-                    self.runtime.should_stop = True
-                await self._loop_callback('after_tool_call', messages)
+                messages = await self.step(messages, tag)
             await self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
             return messages
