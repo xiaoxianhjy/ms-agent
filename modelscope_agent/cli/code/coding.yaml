@@ -96,7 +96,7 @@ prompt:
 
 callbacks:
   - artifact_callback
-  - evaluator_callback
+  - arch_review_callback
   - prompt_callback
 
 memory:

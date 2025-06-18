@@ -9,21 +9,38 @@ coding:
 
 evaluate:
   next:
-    - rewrite_config
+    - remove_arch_review
   engine:
     name: CodeEngine
     kwargs:
       code_file: code_review
 
-rewrite_config:
+remove_arch_review:
   next:
     - refine
   engine:
     name: CodeEngine
     kwargs:
-      code_file: rewrite_config
+      code_file: remove_arch_review
 
 refine:
+  next:
+    - add_human_eval
+  engine:
+    name: SimpleEngine
+    kwargs:
+      trust_remote_code: true
+
+add_human_eval:
+  next:
+    - human_eval
+  engine:
+    name: CodeEngine
+    kwargs:
+      code_file: add_human_eval
+
+
+human_eval:
   engine:
     name: SimpleEngine
     kwargs:
