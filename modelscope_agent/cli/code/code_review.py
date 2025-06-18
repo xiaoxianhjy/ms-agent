@@ -103,5 +103,6 @@ class CodeReview(Code):
                                                       'change to prevent the damages to the functionalities which work normally. '
                                                       'For the file/function missing issue, '
                                                       'you may assign subtasks to generate the missing files/functions if they are essential, or '
-                                                      'tell the subtasks to remove the missing ones if they are not needed.')))
+                                                      'tell the subtasks to remove the missing ones if they are not needed. '
+                                                    'Note: Tell the subtasks to wrap the code with <code></code> and wrap the output file path with <output></output>')))
         return inputs

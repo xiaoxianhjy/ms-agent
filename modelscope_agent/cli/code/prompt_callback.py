@@ -72,6 +72,8 @@ Here are some specific instructions for frontend design:
             if isinstance(tool_args, str):
                 tool_args = json.loads(tool_args)
             tasks = tool_args['tasks']
+            if isinstance(tasks, str):
+                tasks = json.loads(tasks)
             for i, task in enumerate(tasks):
                 system = task['system']
                 system = system + self._prompt

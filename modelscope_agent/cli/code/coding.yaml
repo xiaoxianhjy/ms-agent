@@ -1,6 +1,6 @@
 llm:
   service: openai
-  model: claude-3-7-sonnet-20250219
+  model: qwen-plus-latest
   openai_api_key:
   openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
@@ -8,6 +8,8 @@ generation_config:
   top_p: 0.6
   temperature: 0.2
   top_k: 20
+  max_completion_tokens: 8192
+  max_tokens: 16384
   stream: false
   extra_body:
     enable_thinking: false
@@ -25,6 +27,7 @@ prompt:
     7. One task only writes one code file, you should organize the files in different folders, and give the directory/filename in <output></output> tags to the subtask, e.g. `<output>js/app.js</output>`, this is mandatory!
     8. Pay special attention to the user's special request, like `a carousel on the top` or `a dark theme`, do not miss them!
     9. After the `split_to_sub_task` called, the calling result will be returned to you. You need to retry the failed tasks(If there are) with the same system and query prompts. by `split_to_sub_task`!
+    10. Give a functionality PRD, then a architecture design before split tasks， and redo the failed tasks.
     
     An example:
     query: Please help me write an e-commerce website with Christmas atmosphere, with a carousel at the bottom
