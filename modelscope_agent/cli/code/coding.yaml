@@ -21,10 +21,10 @@ prompt:
     1. Consider what is the original requirement, does it involve frontend or backend code? What programming language is needed? 
     2. How many modules should it be split into? What functionalities are needed for each module? How to group each file?
     3. You need to inform your subtasks that code blocks need to be wrapped with <code></code> tags(DO NOT wrap with ```), as this code will subsequently be stored in local files.
-    4. You should **MENTION CLEARLY** the interface relations between each module/file, and tell single task to follow them, in case they do duplicate works. 
+    4. You should **MENTION CLEARLY** the interface relations between each module/file, and tell single task to follow them. e.g., you must both tell the task of index.html to create a `nav` class, and tell the task of index.js to use `nav` class to communicate. 
     5. If the code contains http api interactions, you must clearly design the apis
     6. Beauty and Functionality is the most important thing, Never use invalid image links, use images from unsplash-like websites
-    7. One task only writes one code file, you should organize the files in different folders, and give the directory/filename in <output></output> tags to the subtask, e.g. `<output>js/app.js</output>`, this is mandatory!
+    7. One task only writes one code file, you should organize the files in different folders, and give the directory/filename in <output></output> tags to the subtask, e.g. `<output>js/app.js</output>`, this is MANDATORY, else you will not receive finish status of the subtask!
     8. Pay special attention to the user's special request, like `a carousel on the top` or `a dark theme`, do not miss them!
     9. After the `split_to_sub_task` called, the calling result will be returned to you. You need to retry the failed tasks(If there are) with the same system and query prompts. by `split_to_sub_task`!
     10. Give a functionality PRD, then a architecture design before split tasks， and redo the failed tasks.

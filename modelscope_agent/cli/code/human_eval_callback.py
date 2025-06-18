@@ -27,7 +27,10 @@ class HumanEvalCallback(Callback):
         return files
 
     async def on_generate_response(self, runtime: Runtime, messages: List[Message]):
-        query = input('>>> Feedback, input <OK> to finish:')
+        if runtime.tag != 'Default workflow' or messages[-1].tool_calls:
+            return
+
+        query = input('>>> Input feedback, input <OK> to finish:')
         if '<OK>' in query:
             runtime.should_stop = True
             feedback = 'Everything is fine, task is end.'
@@ -37,6 +40,9 @@ class HumanEvalCallback(Callback):
                         f'Here are the local files exist: \n\n{all_local_files}\n\n'
                         'You need to conduct/generate a complete analysis based on the feedback to '
                                                       'identify which code needs to be corrected. '
+                        'You may first call `split_to_sub_task` to start some subtasks to collect detailed information from all the related files for you'
+                        '(e.g., your prompt: `You are a subtask to collect information for me, the user feedback is ..., you need to read the a.js file and check what the problem is, '
+                        'remember you are a evaluator, not a programmer, do not write code, just collect information for me.`), '
                                                       'Then call `split_to_sub_task` again to correct the abnormal code. '
                                                       'But You need to pay attention to mention the subtask to '
                                                       'read the existing code file first, then do a minimum '
