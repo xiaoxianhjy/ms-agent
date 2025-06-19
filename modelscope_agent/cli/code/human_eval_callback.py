@@ -15,6 +15,7 @@ class HumanEvalCallback(Callback):
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
+        self.human_eval_ended = False
 
     @staticmethod
     def get_all_files(folder_path):
@@ -27,25 +28,38 @@ class HumanEvalCallback(Callback):
         return files
 
     async def on_generate_response(self, runtime: Runtime, messages: List[Message]):
-        if runtime.tag != 'Default workflow' or messages[-1].tool_calls:
+        if runtime.tag != 'Default workflow' or messages[-1].tool_calls or messages[-1].role == 'tool':
             return
 
         query = input('>>> Input feedback, input <OK> to finish:')
         if '<OK>' in query:
-            runtime.should_stop = True
+            self.human_eval_ended = True
             feedback = 'Everything is fine, task is end.'
         else:
             all_local_files = '\n'.join(self.get_all_files('output'))
-            feedback = (f'Here is the feedback from user: \n\n{query}\n\n'
-                        f'Here are the local files exist: \n\n{all_local_files}\n\n'
-                        'You need to conduct/generate a complete analysis based on the feedback to '
-                                                      'identify which code needs to be corrected. '
-                        'You may first call `split_to_sub_task` to start some subtasks to collect detailed information from all the related files for you'
-                        '(e.g., your prompt: `You are a subtask to collect information for me, the user feedback is ..., you need to read the a.js file and check what the problem is, '
-                        'remember you are a evaluator, not a programmer, do not write code, just collect information for me.`), '
-                                                      'Then call `split_to_sub_task` again to correct the abnormal code. '
-                                                      'But You need to pay attention to mention the subtask to '
-                                                      'read the existing code file first, then do a minimum '
-                                                      'change to prevent the damages to the functionalities which work normally. '
-                                                    'Note: Tell the subtasks to wrap the code with <code></code> and wrap the output file path with <output></output>')
+            feedback = f"""Here is the feedback from user: 
+
+{query}
+
+Here are the local files exist: 
+
+{all_local_files}
+
+You need to conduct/generate a complete analysis based on the feedback to identify which code needs to be corrected. 
+The instructions for your problem checking and fixing:
+1. You should first call `split_to_sub_task` to start some subtasks to collect detailed problems from all the related files for you(Each task check only ONE file)
+
+An example of your query:
+
+```
+You are a subtask to collect information for me, the user feedback is ..., you need to read the a.js file and check what the problem is, remember you are a evaluator, not a programmer, do not write code, just collect information for me.
+```
+
+2. Call `split_to_sub_task` again to correct the abnormal files. But You need to pay attention to mention the subtask to read the existing code file first, then let it do a minimum change to prevent the damages to the functionalities which work normally. Mandatory: Tell the subtasks to wrap the code with <code></code>
+"""
         messages.append(Message(role='user', content=feedback))
+
+    async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
+        if runtime.tag != 'Default workflow':
+            return
+        runtime.should_stop = runtime.should_stop and self.human_eval_ended

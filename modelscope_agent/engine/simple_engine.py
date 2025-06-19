@@ -8,13 +8,12 @@ from typing import List, Optional, Dict, Union
 from omegaconf import DictConfig
 
 from modelscope_agent.callbacks import Callback
-from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.callbacks import callbacks_mapping
-from modelscope_agent.config import Config
 from modelscope_agent.engine.base import Engine
 from modelscope_agent.engine.memory import memory_mapping
 from modelscope_agent.engine.plan.base import Planer
 from modelscope_agent.engine.plan.utils import planer_mapping
+from modelscope_agent.engine.runtime import Runtime
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.rag.base import Rag
@@ -198,7 +197,6 @@ You are a robot assistant. You will be given many tools to help you complete tas
 
         if messages[-1] is not _response_message:
             messages.append(_response_message)
-
         await self._loop_callback('after_generate_response', messages)
         await self._loop_callback('on_tool_call', messages)
 

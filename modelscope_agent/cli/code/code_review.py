@@ -4,7 +4,9 @@ import re
 from copy import deepcopy
 from typing import List
 
+from modelscope_agent.cli.code.artifact_callback import ArtifactCallback
 from modelscope_agent.engine.code.base import Code
+from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.split_task import SplitTask
 
@@ -29,16 +31,7 @@ class CodeReview(Code):
 
     def __init__(self, config):
         super().__init__(config)
-
-    @staticmethod
-    def extract_metadata(messages: List[Message]):
-        content = '\n\n'.join(m.content for m in messages)
-        pattern = r'<output>(.*?)</output>'
-        match = re.search(pattern, content)
-        if match:
-            return match.group(1)
-        else:
-            return None
+        self.llm = LLM.from_config(self.config)
 
     async def generate_code_review_tool_args(self, messages: List[Message]):
         # The split task tool calling
@@ -53,8 +46,10 @@ class CodeReview(Code):
             system = task['system']
             query = task['query']
             try:
-                output_file = self.extract_metadata([Message(role='system', content=system),
+                metadata = ArtifactCallback.extract_metadata(self.config, self.llm,[Message(role='system', content=system),
                                                                  Message(role='user', content=query)])
+                metadata = json.loads(metadata)
+                output_file = metadata.get('output')
             except Exception:
                 code = (f'Cannot fetch the code filename from the prompt of subtask: ```text\n{query}```\n '
                         'the requirement of the sub code task may be error, try to regenerate the architectural design')
@@ -104,5 +99,5 @@ class CodeReview(Code):
                                                       'For the file/function missing issue, '
                                                       'you may assign subtasks to generate the missing files/functions if they are essential, or '
                                                       'tell the subtasks to remove the missing ones if they are not needed. '
-                                                    'Note: Tell the subtasks to wrap the code with <code></code> and wrap the output file path with <output></output>')))
+                                                    'Note: Tell the subtasks to wrap the code with <code></code>, this is mandatory.')))
         return inputs

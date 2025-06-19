@@ -199,7 +199,9 @@ class OpenAI(LLM):
                     tool_calls.append(tool_call)
                 message['tool_calls'] = tool_calls
 
-            message = {key: value for key, value in message.items() if key in self.input_msg and value}
+            message = {key: value.strip() if isinstance(value, str) else value for key, value in message.items() if key in self.input_msg and value}
+            if 'content' not in message:
+                message['content'] = ''
 
             openai_messages.append(message)
 

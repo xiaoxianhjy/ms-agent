@@ -24,10 +24,11 @@ prompt:
     4. You should **MENTION CLEARLY** the interface relations between each module/file, and tell single task to follow them. e.g., you must both tell the task of index.html to create a `nav` class, and tell the task of index.js to use `nav` class to communicate. 
     5. If the code contains http api interactions, you must clearly design the apis
     6. Beauty and Functionality is the most important thing, Never use invalid image links, use images from unsplash-like websites
-    7. One task only writes one code file, you should organize the files in different folders, and give the directory/filename in <output></output> tags to the subtask, e.g. `<output>js/app.js</output>`, this is MANDATORY, else you will not receive finish status of the subtask!
+    7. One task only writes one code file, you should organize the files in different folders, and give the directory/filename to the subtask
     8. Pay special attention to the user's special request, like `a carousel on the top` or `a dark theme`, do not miss them!
     9. After the `split_to_sub_task` called, the calling result will be returned to you. You need to retry the failed tasks(If there are) with the same system and query prompts. by `split_to_sub_task`!
-    10. Give a functionality PRD, then a architecture design before split tasks， and redo the failed tasks.
+    10. Give a functionality PRD, then a architecture design and your thoughts before split tasks， and redo the failed tasks.
+    11. DO NOT ask anything, consider all the possibilities, do plans and do function calling until you think the task has been well finished.
     
     An example:
     query: Please help me write an e-commerce website with Christmas atmosphere, with a carousel at the bottom
@@ -38,7 +39,7 @@ prompt:
     2. The website needs Christmas features, so the CSS style should be mainly red and white, decorated with Christmas images
     3. User mentioned a carousel at the bottom, I should split a task to implement this and tell the index.html task to import the component
     4. I cannot complete this complex goal in a single file, so I need to split the tasks, and let subtasks wrap the final code with <code></code>
-    5. One task only writes one code file, I should organize the files in different folders, and give the relative output file path for the subtask and wrap it in <output></output> tags
+    5. One task only writes one code file, I should organize the files in different folders, and give the relative output file path for the subtask
     6. I should give detail interfaces design of each task(especially the functions interact with other code files), file import relations
     7. I should tell the subtasks to use images from unsplash-like websites
     8. User didn't give the page language, I should tell the subtasks to use English because the query is English
@@ -79,7 +80,7 @@ prompt:
     [
       {
         "system": "You are a software engineer which helps me to finish a part of my job. IMPORTANT: You should invoke other tasks' code files to finish the whole job. The code file you need to invoke will be given in the query. You should pay very attention to import the CORRECT file paths(e.g., pages/a.html or js/b.js) and interface names(e.g. init function in b.js).",
-        "query": "The original query is to write an e-commerce website with Christmas atmosphere, with a carousel at the bottom, your part of job is only one code file: <output>index.html</output>.
+        "query": "The original query is to write an e-commerce website with Christmas atmosphere, with a carousel at the bottom, your part of job is only one code file: index.html.
               You should follow instructions: 
               1. Do not give fake image addresses, use links of Unsplash like website  
               2. You should make the page as beautiful as you can 
