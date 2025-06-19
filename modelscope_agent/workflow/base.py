@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from typing import Optional
 
-from modelscope_agent.engine import SimpleEngine
-from modelscope_agent.engine.base import Engine
-from modelscope_agent.engine.code_engine import CodeEngine
+from modelscope_agent.agent import SimpleEngine
+from modelscope_agent.agent.base import Engine
+from modelscope_agent.agent.code_engine import CodeEngine
 
 
 class Workflow:

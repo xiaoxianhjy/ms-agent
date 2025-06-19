@@ -4,21 +4,21 @@ from typing import Optional, Dict
 from omegaconf import DictConfig
 
 from modelscope_agent.config import Config
-from modelscope_agent.engine.base import Engine
+from modelscope_agent.agent.base import Engine
 from modelscope_agent.workflow.base import Workflow
 
 
 class ChainWorkflow(Workflow):
 
     def __init__(self,
-                 task_dir_or_id: Optional[str]=None,
+                 config_dir_or_id: Optional[str]=None,
                  config: Optional[DictConfig]=None,
                  env: Optional[Dict[str, str]]=None,
                  **kwargs):
-        if task_dir_or_id is None:
+        if config_dir_or_id is None:
             self.config = config
         else:
-            self.config = Config.from_task(task_dir_or_id, env)
+            self.config = Config.from_task(config_dir_or_id, env)
         self.workflow_chains = []
         self.build_workflow()
 
@@ -71,7 +71,7 @@ class ChainWorkflow(Workflow):
             _cfg = getattr(task_info, 'config', config)
             init_args = getattr(task_info.engine, 'kwargs', {})
             if isinstance(_cfg, str):
-                engine = engine_cls(task_dir_or_id=_cfg, **init_args)
+                engine = engine_cls(config_dir_or_id=_cfg, **init_args)
             else:
                 engine = engine_cls(config=_cfg, **init_args)
             inputs = await engine.run(inputs, **kwargs)

@@ -14,40 +14,40 @@ logger = get_logger()
 
 class Config:
 
-    supported_config_names = ['config.json', 'config.yml', 'config.yaml']
+    supported_config_names = ['config.yml', 'config.yaml']
 
     @classmethod
-    def from_task(cls, task_dir_or_id: str, env: Dict[str, str] = None) -> Union[DictConfig, ListConfig]:
+    def from_task(cls, config_dir_or_id: str, env: Dict[str, str] = None) -> Union[DictConfig, ListConfig]:
         """Read a task config file and return a config object.
 
         Args:
-            task_dir_or_id: The local task directory or an id in the modelscope repository.
+            config_dir_or_id: The local task directory or an id in the modelscope repository.
             env: The extra environment variables except ones already been included
                 in the environment or in the `.env` file.
 
         Returns:
             The config object.
         """
-        if not os.path.exists(task_dir_or_id):
-            task_dir_or_id = snapshot_download(task_dir_or_id)
+        if not os.path.exists(config_dir_or_id):
+            config_dir_or_id = snapshot_download(config_dir_or_id)
 
         config = None
-        if os.path.isfile(task_dir_or_id):
-            config = OmegaConf.load(task_dir_or_id)
-            task_dir_or_id = os.path.dirname(task_dir_or_id)
+        if os.path.isfile(config_dir_or_id):
+            config = OmegaConf.load(config_dir_or_id)
+            config_dir_or_id = os.path.dirname(config_dir_or_id)
         else:
             for name in Config.supported_config_names:
-                config_file = os.path.join(task_dir_or_id, name)
+                config_file = os.path.join(config_dir_or_id, name)
                 if os.path.exists(config_file):
                     config = OmegaConf.load(config_file)
 
-        assert config is not None, (f'Cannot find any config file in {task_dir_or_id} named `config.json`, '
+        assert config is not None, (f'Cannot find any config file in {config_dir_or_id} named `config.json`, '
                                     f'`config.yml` or `config.yaml`')
         envs = Env.load_env(env)
         cls._update_config(config, envs)
         _dict_config = cls.parse_args()
         cls._update_config(config, _dict_config)
-        config.local_dir = task_dir_or_id
+        config.local_dir = config_dir_or_id
         return config
 
     @staticmethod

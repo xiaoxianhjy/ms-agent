@@ -3,7 +3,7 @@ import asyncio
 import os
 
 from modelscope_agent.config import Config
-from modelscope_agent.engine.simple_engine import SimpleEngine
+from modelscope_agent.agent.simple_engine import SimpleEngine
 
 if __name__ == '__main__':
     cur_file = __file__

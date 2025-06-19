@@ -32,18 +32,18 @@ class LLM:
         pass
 
     @classmethod
-    def from_task(cls, task_dir_or_id: str, *, env: Dict[str, str] = None) -> Any:
+    def from_task(cls, config_dir_or_id: str, *, env: Dict[str, str] = None) -> Any:
         """Instantiate an LLM instance.
 
         Args:
-            task_dir_or_id: The local task directory or an id in the modelscope repository.
+            config_dir_or_id: The local task directory or an id in the modelscope repository.
             env: The extra environment variables except ones already been included
                 in the environment or in the `.env` file.
 
         Returns:
             The LLM instance.
         """
-        config = Config.from_task(task_dir_or_id, env)
+        config = Config.from_task(config_dir_or_id, env)
         return cls.from_config(config)
 
 

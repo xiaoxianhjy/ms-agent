@@ -1,3 +1,4 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import importlib
 import inspect
 import os
@@ -6,23 +7,29 @@ from typing import Optional, Dict
 
 from omegaconf import DictConfig
 
-from modelscope_agent.engine.base import Engine
-from modelscope_agent.engine.code.base import Code
+from . import Agent
+from .code import Code
 
 
-class CodeEngine(Engine):
+class CodeAgent(Agent):
 
     def __init__(self,
-                 task_dir_or_id: Optional[str]=None,
+                 config_dir_or_id: Optional[str]=None,
                  config: Optional[DictConfig]=None,
                  env: Optional[Dict[str, str]]=None,
                  *,
-                 code_file: str,
-                 **kwargs):
-        super().__init__(task_dir_or_id, config, env)
+                 code_file: str):
+        super().__init__(config_dir_or_id, config, env)
         self.code_file = code_file
 
     async def run(self, inputs, **kwargs):
+        """Run the agent.
+
+        Args:
+            inputs(`Union[str, List[Message]]`): The inputs can be a prompt string, or a list of messages from the previous agent
+        Returns:
+            The final messages
+        """
         base_path = os.path.dirname(self.code_file)
         if sys.path[0] != base_path:
             sys.path.insert(0, base_path)

@@ -31,7 +31,7 @@ class SplitTask(ToolBase):
                         "properties": {
                             "tasks": {
                                 "type": "array",
-                                "description": "Each element is a dict, which contains two fields: system and query to start the sub task."
+                                "description": "MANDATORY: Each element is a dict, which must contains two fields: `system`(str) and `query`(str) to start one sub task."
                             }
                         },
                         "required": [
@@ -44,7 +44,7 @@ class SplitTask(ToolBase):
 
 
     async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict):
-        from modelscope_agent.engine import SimpleEngine
+        from modelscope_agent.agent import SimpleEngine
         tasks = tool_args.get('tasks')
         sub_tasks = []
         for i, task in enumerate(tasks):
@@ -52,7 +52,6 @@ class SplitTask(ToolBase):
             query = task['query']
             config = DictConfig(self.config)
             config.prompt.system = system
-            delattr(config.tools, 'split_task')
             trust_remote_code = getattr(config, 'trust_remote_code', False)
             engine = SimpleEngine(config=config, trust_remote_code=trust_remote_code)
             sub_tasks.append(engine.run(query, tag=f'workflow {i}'))

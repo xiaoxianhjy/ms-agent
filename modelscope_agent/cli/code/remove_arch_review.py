@@ -1,9 +1,10 @@
 from omegaconf import DictConfig
 
-from modelscope_agent.engine.code.base import Code
+from modelscope_agent.agent.code.base import Code
 
 
 class RemoveArchReview(Code):
+    """Remove the architecture review callback"""
 
     def __init__(self, config):
         super().__init__(config)

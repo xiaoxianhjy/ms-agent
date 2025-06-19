@@ -1,4 +1,7 @@
 from abc import abstractmethod
+from typing import List
+
+from modelscope_agent.llm import Message
 
 
 class Rag:
@@ -7,11 +10,11 @@ class Rag:
         self.config = config
 
     @abstractmethod
-    def add_document(self, url: str, content: str, **metadata):
+    async def add_document(self, url: str, content: str, **metadata):
         pass
 
     @abstractmethod
-    def search_documents(self,
+    async def search_documents(self,
                          query: str,
                          limit: int = 5,
                          score_threshold: float=0.7,
@@ -19,5 +22,9 @@ class Rag:
         pass
 
     @abstractmethod
-    def delete_document(self, url: str):
+    async def delete_document(self, url: str):
+        pass
+
+    @abstractmethod
+    async def run(self, inputs: List[Message]) -> List[Message]:
         pass

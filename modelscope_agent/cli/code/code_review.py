@@ -1,40 +1,53 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import json
-import os
-import re
 from copy import deepcopy
-from typing import List
+from typing import List, Dict
 
-from modelscope_agent.cli.code.artifact_callback import ArtifactCallback
-from modelscope_agent.engine.code.base import Code
+from modelscope_agent.agent import Runtime
+from modelscope_agent.agent.code.base import Code
+from .artifact_callback import ArtifactCallback
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
+from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.tools.split_task import SplitTask
 
 
 class CodeReview(Code):
+    """Review the code automatically!"""
 
-    _code_review_system = """You are a static code analyst. Your responsibility is to analyze code based on the architect's original architectural design, specific sub-requirement of code tasks, and the actual generated code, to identify and provide feedback on issues within it. The code may be normal or may contain several problems. Please note the following:
+    _code_review_system = """You are a static code analyst. Your responsibility is to analyze code based on the architect's architectural design and the generated code, then identify and provide feedback on issues within it. The code may be normal or contain several problems. Please follow these instructions:
 
-        1. If the code works fine, do not propose modification requests, just reply "Code meets requirements"
-        2. Pay attention to unavailable features in the code that were not designed by the architect but added extra by subtasks, which may cause problems
-        3. Pay attention to whether there are external code references and external resource references in the code that do not follow the actual file paths
-        4. Pay attention to whether there are modules in the code that cannot run
-        5. Pay attention to parts in the code that do not meet the specific sub-requirements of code tasks
-        6. If the code file does not exist, mention that the code need to be regenerated.
-        7. Pay attention to whether the code file import structures follow the PRD and architecture design
-        8. You must clearly declare what file are you analysing, e.g. `The evaluate result of code file js/a.js: <your result here>\n\n`
+1. If the code works fine, do not propose modification requests, just reply "Code meets requirements"
+2. Pay attention to unavailable features in the code that was not designed by the architect but added extra by subtasks
+3. Pay attention to whether there are external code and resource references(imports) in the code that do not follow the actual file paths and the architectural design
+4. Pay attention to whether there are modules in the code that work abnormally
+5. Pay attention to parts in the code that do not meet the specific sub-requirements of code tasks and the architectural design
+6. If the code file does not exist, report that the code need to be regenerated
+7. Clearly declare which file you are analyzing, e.g. `The evaluate result of code file js/a.js: <your result here>\n\n`
 
-        Note: You do not need to fix these errors, just specifically point out the problems.
+Note: You do not need to fix these errors, just specifically point out the problems.
 
-        Now begin:
-        """
+Now begin:
+"""
 
     def __init__(self, config):
         super().__init__(config)
         self.llm = LLM.from_config(self.config)
+        self.file_system = FileSystemTool(config)
+        self.output_dir = getattr(config, 'output_dir', 'output')
 
-    async def generate_code_review_tool_args(self, messages: List[Message]):
-        # The split task tool calling
+    async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
+        await self.file_system.connect()
+
+    async def generate_code_review_tool_args(self, messages: List[Message])-> Dict[str, Dict[str, str]]:
+        """Manually generate code review tool arguments.
+
+        Args:
+            messages: The messages of the architecture.
+
+        Returns:
+            The input arguments of the split-task tool.
+        """
         arch_design = messages[2].content
         tool_args = messages[2].tool_calls[0]['arguments']
         if isinstance(tool_args, str):
@@ -46,23 +59,22 @@ class CodeReview(Code):
             system = task['system']
             query = task['query']
             try:
-                metadata = ArtifactCallback.extract_metadata(self.config, self.llm,[Message(role='system', content=system),
+                metadata = ArtifactCallback.extract_metadata(self.config,
+                                                             self.llm,
+                                                             [Message(role='system', content=system),
                                                                  Message(role='user', content=query)])
                 metadata = json.loads(metadata)
                 output_file = metadata.get('output')
-            except Exception:
+            except Exception: # noqa
+                # should not happen
                 code = (f'Cannot fetch the code filename from the prompt of subtask: ```text\n{query}```\n '
-                        'the requirement of the sub code task may be error, try to regenerate the architectural design')
+                        'the requirement of the sub code task may be error, try to regenerate the code architecture.')
             else:
-                try:
-                    with open(os.path.join('output', output_file), 'r') as f:
-                        code = f.read()
-                except Exception:
-                    code = 'Code file not found or error, need regenerate.'
+                code = self.file_system.read_file(output_file)
 
             review_query = (f'The architect\'s original architectural design is:\n\n```\n{arch_design}```\n\n'
                             f'The sub-requirement of the subtask is:\n\n```\n{query}```\n\n'
-                            f'The generated code is:\n\n```\n{code}```\n\n, Now analysis this code:\n')
+                            f'The generated code is:\n\n```\n{code}```\n\n, Now analyze this code:\n')
             task_arg = {
                 'system': self._code_review_system,
                 'query': review_query,
@@ -70,34 +82,32 @@ class CodeReview(Code):
             sub_tasks.append(task_arg)
         return {'tasks': sub_tasks}
 
-    @staticmethod
-    def get_all_files(folder_path):
-        files = []
-        for root, dirs, filenames in os.walk(folder_path):
-            for filename in filenames:
-                full_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(full_path, folder_path)
-                files.append(relative_path)
-        return files
-
     async def run(self, inputs, **kwargs):
+        """Do a code review task.
+        """
         config = deepcopy(self.config)
         sub_tasks = await self.generate_code_review_tool_args(inputs)
         config.callbacks = []
         split_task = SplitTask(config)
-        tool_result = await split_task.call_tool('split_task', tool_name='split_to_sub_task',
+        tool_result = await split_task.call_tool('split_task',
+                                                 tool_name='split_to_sub_task',
                                                  tool_args=sub_tasks)
-        all_local_files = '\n'.join(self.get_all_files('output'))
-        inputs.append(Message(role='user', content=(f'Here is the code checking result: \n\n{tool_result}\n\n'
-                                                      f'Here are the local files exist: \n\n{all_local_files}\n\n'
-                                                      'You need to conduct/generate a complete analysis based on the results to '
-                                                      'identify which code needs to be corrected. '
-                                                      'Then call `split_to_sub_task` again to correct the abnormal code. '
-                                                      'But You need to pay attention to mention the subtask to '
-                                                      'read the existing code file first, then do a minimum '
-                                                      'change to prevent the damages to the functionalities which work normally. '
-                                                      'For the file/function missing issue, '
-                                                      'you may assign subtasks to generate the missing files/functions if they are essential, or '
-                                                      'tell the subtasks to remove the missing ones if they are not needed. '
-                                                    'Note: Tell the subtasks to wrap the code with <code></code>, this is mandatory.')))
+        all_local_files = '\n'.join(await self.file_system.list_files())
+        query = f"""A coding checking has been done. Here is the code checking result: 
+
+{tool_result}
+
+Here are the local files: 
+
+{all_local_files}
+
+Here is the instructions you need to follow:
+1. Conduct/generate a complete report based on the results to identify which code files need to be corrected, and how to correct.
+2. Call `split_to_sub_task` again to correct the abnormal code.
+
+You need to mention the subtask to read the existing code file first by a tool-calling, then do a minimum change to prevent the damages to the functionalities which work normally.
+For the file/function missing issue, you may assign subtasks to generate, or to remove the obsolete part of the code.
+MANDATORY: Mention the subtasks to wrap the code with <code></code>.
+"""
+        inputs.append(Message(role='user', content=query))
         return inputs

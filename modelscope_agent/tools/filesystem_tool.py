@@ -67,8 +67,10 @@ class FileSystemTool(ToolBase):
             return 'Code file not found or error, need regenerate.'
         # return await self.call_tool('filesystem', tool_name='read_file', tool_args={'path': path})
 
-    async def list_files(self, path: str):
+    async def list_files(self, path: str = None):
         file_paths = []
+        if not path:
+            path = self.prefix
         for root, dirs, files in os.walk(path):
             for file in files:
                 absolute_path = os.path.join(root, file)

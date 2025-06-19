@@ -1,7 +1,8 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from dataclasses import dataclass
 from typing import Optional
 
-from modelscope_agent.llm.llm import LLM
+from modelscope_agent.llm import LLM
 
 
 @dataclass
