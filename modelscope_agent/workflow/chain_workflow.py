@@ -1,4 +1,5 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import os.path
 from abc import abstractmethod
 from typing import Dict, Optional, Type
 
@@ -18,11 +19,13 @@ class ChainWorkflow(Workflow):
                  config_dir_or_id: Optional[str] = None,
                  config: Optional[DictConfig] = None,
                  env: Optional[Dict[str, str]] = None,
+                 trust_remote_code: Optional[bool] = False,
                  **kwargs):
         if config_dir_or_id is None:
             self.config = config
         else:
             self.config = Config.from_task(config_dir_or_id, env)
+        self.trust_remote_code = trust_remote_code or False
         self.workflow_chains = []
         self.build_workflow()
 
@@ -77,13 +80,13 @@ class ChainWorkflow(Workflow):
             _cfg = getattr(task_info, 'config', config)
             init_args = getattr(task_info.agent, 'kwargs', {})
             init_args.pop('trust_remote_code', None)
-            init_args['trust_remote_code'] = kwargs.get(
-                'trust_remote_code', False)
+            init_args['trust_remote_code'] = self.trust_remote_code
             if isinstance(_cfg, str):
-                logger.info(
-                    f'Task {task} has its own config: {_cfg}, '
-                    f'the config from the previous task will be ignored.')
-                agent = agent_cls(config_dir_or_id=_cfg, **init_args)
+                if config is not None:
+                    logger.info(
+                        f'Task {task} has its own config: {_cfg}, '
+                        f'the config from the previous task will be ignored.')
+                agent = agent_cls(config_dir_or_id=os.path.join(self.config.local_dir, _cfg), **init_args)
             else:
                 agent = agent_cls(config=_cfg, **init_args)
             inputs = await agent.run(inputs, **kwargs)

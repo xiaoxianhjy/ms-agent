@@ -96,8 +96,3 @@ class Callback:
             None.
         """
         pass
-
-    @staticmethod
-    def is_default_workflow(runtime: Runtime) -> bool:
-        from modelscope_agent.agent import Agent
-        return runtime.tag == Agent.DEFAULT_TAG

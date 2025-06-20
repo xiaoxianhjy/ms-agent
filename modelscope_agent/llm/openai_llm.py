@@ -3,7 +3,7 @@ import inspect
 from typing import Any, Dict, Generator, Iterable, List, Optional
 
 from modelscope_agent.utils import assert_package_exist, get_logger, retry
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall, Function)
 

@@ -28,7 +28,7 @@ class ConfigLifecycleHandler:
             `DictConfig`: The modified config
 
         """
-        pass
+        return config
 
     def task_end(self, config: DictConfig, tag: str) -> DictConfig:
         """Modify config when the task ends, and config will be passed to the next agent in the workflow.
@@ -42,7 +42,7 @@ class ConfigLifecycleHandler:
         Returns:
             `DictConfig`: The modified config
         """
-        pass
+        return config
 
 
 class Config:
@@ -80,6 +80,7 @@ class Config:
                 if os.path.exists(config_file):
                     config = OmegaConf.load(config_file)
                     name = _name
+                    break
 
         assert config is not None, (
             f'Cannot find any valid config file in {config_dir_or_id}, '

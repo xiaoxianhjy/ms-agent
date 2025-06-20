@@ -32,17 +32,12 @@ prompt:
     11. The preference language of the frontend is react
     12. DO NOT generate code yourself, just do the design
 
-    Now begin:
-
-callbacks:
-  - callbacks/artifact_callback
-  - callbacks/arch_review_callback
-  - callbacks/prompt_callback
 
 handler: config_handler
 
 tools:
   split_task:
     mcp: false
+    tag_prefix: worker-
 
 help: |

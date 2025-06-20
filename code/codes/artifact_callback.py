@@ -94,8 +94,6 @@ Your answer should be:
 
     async def after_generate_response(self, runtime: Runtime,
                                       messages: List[Message]):
-        if self.is_default_workflow(runtime):
-            return
         if messages[-1].tool_calls:
             return
         metadata = self.extract_metadata(self.config, runtime.llm, messages)

@@ -1,6 +1,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import importlib
 import inspect
+import os.path
 import sys
 from copy import deepcopy
 from typing import Dict, List, Optional, Union
@@ -61,6 +62,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.rag: Optional[Rag] = None
         self.llm: Optional[LLM] = None
         self.runtime: Optional[Runtime] = None
+        self._task_begin()
 
     def register_callback(self, callback: Callback):
         """Register a callback."""
@@ -72,6 +74,10 @@ You are a robot assistant. You will be given many tools to help you complete tas
         if hasattr(self.config, 'callbacks'):
             callbacks = self.config.callbacks or []
             for _callback in callbacks:
+                subdir = os.path.dirname(_callback)
+                assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
+                subdir = os.path.join(local_dir, subdir)
+                _callback = os.path.basename(_callback)
                 if _callback not in callbacks_mapping:
                     if not self.trust_remote_code:
                         raise AssertionError(
@@ -79,9 +85,10 @@ You are a robot assistant. You will be given many tools to help you complete tas
                             'instantiate the code may be UNSAFE, if you trust the code, '
                             'please pass `trust_remote_code=True` or `--trust_remote_code true`'
                         )
-                    if sys.path[0] != local_dir:
-                        assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
+                    if local_dir not in sys.path:
                         sys.path.insert(0, local_dir)
+                    if subdir not in sys.path:
+                        sys.path.insert(0, subdir)
                     callback_file = importlib.import_module(_callback)
                     module_classes = {
                         name: cls
@@ -140,7 +147,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
             Message(role='system', content=system or self.DEFAULT_SYSTEM),
             Message(role='user', content=inputs or query),
         ]
-        messages = await self.rag.run(messages)
+        if self.rag is not None:
+            messages = await self.rag.run(messages)
         return messages
 
     async def _prepare_memory(self):
@@ -176,7 +184,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         return messages
 
     async def _update_plan(self, messages: List[Message]) -> List[Message]:
-        if self.planer:
+        if self.planer is not None:
             messages = await self.planer.update_plan(self.runtime, messages)
         return messages
 
@@ -212,8 +220,10 @@ You are a robot assistant. You will be given many tools to help you complete tas
             _response_message = self.llm.generate(messages, tools=tools)
 
         if _response_message.content:
+            self._log_output('[assistant]:', tag=tag)
             self._log_output(_response_message.content, tag=tag)
         if _response_message.tool_calls:
+            self._log_output('[tool_calling]:', tag=tag)
             for tool_call in _response_message.tool_calls:
                 self._log_output(json.dumps(tool_call), tag=tag)
 
@@ -258,6 +268,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             if self.planer:
                 messages = await self.planer.make_plan(messages, self.runtime)
             for message in messages:
+                self._log_output('[' + message.role + ']:', tag=self.tag)
                 self._log_output(message.content, tag=self.tag)
             while not self.runtime.should_stop:
                 messages = await self._step(messages, self.tag)

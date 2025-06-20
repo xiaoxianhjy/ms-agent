@@ -17,12 +17,12 @@ class ArchReviewCallback(Callback):
     _arch_review_system = """You are a software architecture evaluator whose job is to assess whether the software architecture is reasonable. The actual workflow is:
 
 1. An original requirement is given
-2. A software architect provides the code architecture and breaks down into different subtasks for completion, each subtask is responsible for writing one code file
+2. A software architect provides the code architectural design and breaks down into different subtasks for completion, each subtask is responsible for writing one code file
 3. After the subtasks are completed, they are automatically saved to disk, these modules will work together collaboratively
 
-However, software architects have a high probability of making mistakes, including but not limited to:
+However, software architects have a high probability of making mistakes, here are instructions:
 
-1. The architecture does not meet user requirements, especially the detailed requirements. Such as insufficient content richness or misunderstanding
+1. The architectural design should meet user requirements, especially the detailed requirements. Normal problems such as insufficient content richness or misunderstanding
 2. Dependencies and interface designs between subtasks MUST BE clear and reliable and sufficient for collaborative work
 3. Check the input arguments of `split_to_sub_task`:
     * A system field and a query field must exist
@@ -46,15 +46,9 @@ Now Begin:
 
     async def after_generate_response(self, runtime: Runtime,
                                       messages: List[Message]):
-        # Review architecture with another evaluator here
-        if not self.is_default_workflow(runtime):
-            return
-
         await self.do_arch_review(runtime, messages)
 
     async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
-        if not self.is_default_workflow(runtime):
-            return
         # When reviewing architecture, tool_calls is None, prevent the loop from ending.
         runtime.should_stop = runtime.should_stop and self.arch_review_ended
 

@@ -1,13 +1,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from code.coding.artifact_callback import ArtifactCallback
 from typing import List
 
-import json
+from omegaconf import DictConfig
+
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
-from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -63,28 +62,12 @@ Instructions for frontend design:
     def __init__(self, config: DictConfig):
         super().__init__(config)
 
-    async def on_tool_call(self, runtime: Runtime, messages: List[Message]):
-        if self.is_default_workflow(runtime):
-            return
-
-        metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm,
-                                                     messages)
-        metadata = json.loads(metadata)
-        task_type = metadata.get('task_type')
-        if task_type != 'generate_code':
-            return
-
-        if messages[-1].tool_calls:
-            tool_call = messages[-1].tool_calls[0]
-            tool_args = tool_call['arguments']
-            if isinstance(tool_args, str):
-                tool_args = json.loads(tool_args)
-            tasks = tool_args['tasks']
-            if isinstance(tasks, str):
-                tasks = json.loads(tasks)
-            for i, task in enumerate(tasks):
-                system = task['system']
-                system = system + self._prompt
-                task['system'] = system
-            # some models require arguments to be a string, for the next llm_call's input
-            tool_call['arguments'] = json.dumps(tool_args)
+    async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
+        # metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm,
+        #                                              messages)
+        # metadata = json.loads(metadata)
+        # task_type = metadata.get('task_type')
+        # if task_type != 'generate_code':
+        #     return
+        assert messages[0].role == 'system'
+        messages[0].content = messages[0].content + self._prompt

@@ -27,5 +27,5 @@ if __name__ == '__main__':
     else:
         engine = LLMAgent(config=config, trust_remote_code=args.trust_remote_code)
 
-    query = input('>>>Please input the query:')
+    query = 'Design a demo website' # input('>>>Please input the query:')
     asyncio.run(engine.run(query))

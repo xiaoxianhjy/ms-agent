@@ -11,6 +11,8 @@ class SplitTask(ToolBase):
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
+        self.tag_prefix = getattr(config.tools.split_task, 'tag_prefix', 'worker-')
+        self.round = 0
 
     async def connect(self):
         pass
@@ -63,10 +65,13 @@ class SplitTask(ToolBase):
             config.prompt.system = system
             trust_remote_code = getattr(config, 'trust_remote_code', False)
             agent = LLMAgent(
-                config=config, trust_remote_code=trust_remote_code)
-            sub_tasks.append(agent.run(query, tag=f'workflow {i}'))
+                config=config,
+                trust_remote_code=trust_remote_code,
+                tag=f'{self.config.tag}-r{self.round}-{self.tag_prefix}{i}')
+            sub_tasks.append(agent.run(query))
         result = await asyncio.gather(*sub_tasks)
         res = []
         for messages in result:
             res.append(messages[-1].content)
+        self.round += 1
         return '\n\n'.join(res)

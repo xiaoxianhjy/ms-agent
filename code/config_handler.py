@@ -6,17 +6,20 @@ from modelscope_agent.config.config import ConfigLifecycleHandler
 class ConfigHandler(ConfigLifecycleHandler):
 
     def task_begin(self, config: DictConfig, tag: str) -> DictConfig:
-        if tag in ('Architecture', 'Reviewer'):
-            pass
+        if tag == 'Architecture':
+            # only need arch review
+            config.callbacks = ['codes/arch_review_callback']
+        elif tag == 'Reviewer':
+            # no callbacks needed
+            config.callbacks = []
         elif tag == 'AutoRefiner':
-            config.callbacks = ['artifact_callback', 'prompt_callback']
+            # no callbacks needed
+            config.callbacks = []
+        elif tag == 'HumanEvalRefiner':
+            config.callbacks = ['codes/human_eval_callback']
+        elif 'worker' in tag:
+            config.callbacks = ['codes/artifact_callback', 'codes/prompt_callback']
+            delattr(config.tools, 'split_task')
             config.tools.file_system = DictConfig({'mcp': False,
                                                    'exclude': ['create_directory', 'write_file', 'list_files']})
-        elif tag == 'HumanEvalRefiner':
-            config.callbacks = ['artifact_callback', 'prompt_callback', 'human_eval_callback']
-        else:
-            config.callbacks = ['artifact_callback', 'prompt_callback']
-            delattr(config.tools, 'split_task')
-
-    def task_end(self, config: DictConfig, tag: str) -> DictConfig:
-        pass
+        return config

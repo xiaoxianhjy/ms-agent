@@ -13,7 +13,7 @@ code_review:
   agent:
     name: CodeAgent
     kwargs:
-      code_file: code_review
+      code_file: codes/code_review
       tag: Reviewer
 
 refine:

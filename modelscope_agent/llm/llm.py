@@ -2,9 +2,9 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 
-from modelscope_agent.config.config import Config
-from modelscope_agent.llm import Message
-from modelscope_agent.llm.utils import Tool
+from modelscope_agent.config import Config
+from .utils import Message
+from .utils import Tool
 from omegaconf import DictConfig
 
 

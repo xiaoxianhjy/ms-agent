@@ -25,9 +25,7 @@ class HumanEvalCallback(Callback):
 
     async def on_generate_response(self, runtime: Runtime,
                                    messages: List[Message]):
-        if (
-                not self.is_default_workflow(runtime)
-        ) or messages[-1].tool_calls or messages[-1].role == 'tool':  # noqa
+        if messages[-1].tool_calls or messages[-1].role == 'tool':  # noqa
             # subtask or tool-calling or tool response, skip
             return
 
@@ -60,6 +58,4 @@ You are a subtask to collect information for me, the user feedback is ..., you n
         messages.append(Message(role='user', content=feedback))
 
     async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
-        if not self.is_default_workflow(runtime):
-            return
         runtime.should_stop = runtime.should_stop and self.human_eval_ended

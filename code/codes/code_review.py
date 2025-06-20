@@ -1,5 +1,5 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from code.coding.artifact_callback import ArtifactCallback
+from .artifact_callback import ArtifactCallback
 from copy import deepcopy
 from typing import Dict, List
 

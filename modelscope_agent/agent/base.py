@@ -36,6 +36,7 @@ class Agent:
             self.tag = getattr(config, 'tag', None) or self.DEFAULT_TAG
         else:
             self.tag = tag
+        self.config.tag = self.tag
         self.trust_remote_code = trust_remote_code
         self.config.trust_remote_code = trust_remote_code
         self.handler: Optional[ConfigLifecycleHandler] = None
@@ -47,11 +48,11 @@ class Agent:
             local_dir = self.config.local_dir
             assert self.trust_remote_code, (
                 f'[External Code]A Config Lifecycle handler '
-                f'registered in the config: {handler_file} '
-                f'This is external code, if you trust this workflow, '
+                f'registered in the config: {handler_file}. '
+                f'\nThis is external code, if you trust this workflow, '
                 f'please specify `--trust_remote_code true`')
             assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
-            if sys.path[0] != local_dir:
+            if local_dir not in sys.path:
                 sys.path.insert(0, local_dir)
 
             handler_module = importlib.import_module(handler_file)
