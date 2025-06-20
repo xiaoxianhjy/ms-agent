@@ -1,12 +1,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from typing import List
 
-from omegaconf import DictConfig
-
-from modelscope_agent.callbacks import Callback
 from modelscope_agent.agent import Runtime
+from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm import Message
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -35,10 +34,10 @@ However, software architects have a high probability of making mistakes, includi
 5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and generate a new plan and call `split_to_sub_task` again`
 
 Carefully analyze the errors within, prompt the software architect to make corrections, if the plan already meets the requirements, output the <OK> character.
-Remember: You are not a software architect, you are an evaluator. You don't need to design architecture, you only need to point out or inspire awareness of the errors. 
+Remember: You are not a software architect, you are an evaluator. You don't need to design architecture, you only need to point out or inspire awareness of the errors.
 Now Begin:
 
-"""
+""" # noqa
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
@@ -57,9 +56,11 @@ Now Begin:
             self.arch_review_ended = True
             return
 
-        query = (f'The original requirement is: \n```text\n{messages[1].content}\n```\n\n '
-                 f'The plan given by the architect is: \n```text\n{messages[2].content}\n```\n\n '
-                 f'The task arguments is : \n```json\n{messages[2].tool_calls[0]}\n```\n\n')
+        query = (
+            f'The original requirement is: \n```text\n{messages[1].content}\n```\n\n '
+            f'The plan given by the architect is: \n```text\n{messages[2].content}\n```\n\n '
+            f'The task arguments is : \n```json\n{messages[2].tool_calls[0]}\n```\n\n'
+        )
 
         _messages = [
             Message(role='system', content=self._arch_review_system),
@@ -84,10 +85,11 @@ Now Begin:
         else:
             # If something wrong, do no tool-calling, refine the design
             messages[-1].tool_calls = None
-            messages.append(Message(role='user', content=_response_message.content))
+            messages.append(
+                Message(role='user', content=_response_message.content))
 
-
-    async def after_generate_response(self, runtime: Runtime, messages: List[Message]):
+    async def after_generate_response(self, runtime: Runtime,
+                                      messages: List[Message]):
         if not self.is_default_workflow(runtime):
             # Not work in subtasks
             self.arch_review_ended = True

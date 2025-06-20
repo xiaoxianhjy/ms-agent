@@ -1,5 +1,5 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from typing import Union, List
+from typing import List, Union
 
 from modelscope_agent.agent import Code
 from modelscope_agent.llm import Message
@@ -13,5 +13,7 @@ class RemoveArchReview(Code):
         super().__init__(config)
 
     async def run(self, inputs: Union[str, List[Message]], **kwargs):
-        self.config.callbacks = ['artifact_callback', 'prompt_callback', 'human_eval_callback']
+        self.config.callbacks = [
+            'artifact_callback', 'prompt_callback', 'human_eval_callback'
+        ]
         return inputs

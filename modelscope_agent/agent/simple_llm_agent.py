@@ -1,20 +1,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import importlib
 import inspect
-import json
 import sys
 from copy import deepcopy
-from typing import List, Optional, Dict, Union
+from typing import Dict, List, Optional, Union
 
-from omegaconf import DictConfig
-
-from modelscope_agent.callbacks import Callback
-from modelscope_agent.callbacks import callbacks_mapping
-from .base import Agent
-from .memory import memory_mapping, Memory
-from .plan.base import Planer
-from .plan.utils import planer_mapping
-from .runtime import Runtime
+import json
+from modelscope_agent.callbacks import Callback, callbacks_mapping
 from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message, Tool
 from modelscope_agent.rag.base import Rag
@@ -22,6 +14,13 @@ from modelscope_agent.rag.utils import rag_mapping
 from modelscope_agent.tools import ToolManager
 from modelscope_agent.utils.llm_utils import retry
 from modelscope_agent.utils.logger import logger
+from omegaconf import DictConfig
+
+from .base import Agent
+from .memory import Memory, memory_mapping
+from .plan.base import Planer
+from .plan.utils import planer_mapping
+from .runtime import Runtime
 
 
 class SimpleLLMAgent(Agent):
@@ -42,12 +41,12 @@ You are a robot assistant. You will be given many tools to help you complete tas
 3. For complex tasks, you can break them down into subtasks. These subtasks will be executed separately by other robot assistants, who will return the results to you. Make sure to provide appropriate system instructions and queries for each subtask to ensure they can proceed normally.
 4. If you are assigned a task, ensure that the final information you return strictly follows the requirements in the system instructions and query. Do not end your task before it is completed. If there are task management tools, pay attention to the prompts they give you and strictly follow these prompts.
 5. You can call tools in parallel and ensure that you call tools in each round of dialogue before the task is completed.
-"""
+""" # noqa
 
     def __init__(self,
-                 config_dir_or_id: Optional[str]=None,
-                 config: Optional[DictConfig]=None,
-                 env: Optional[Dict[str, str]]=None,
+                 config_dir_or_id: Optional[str] = None,
+                 config: Optional[DictConfig] = None,
+                 env: Optional[Dict[str, str]] = None,
                  **kwargs):
         super().__init__(config_dir_or_id, config, env)
         self.llm: LLM = LLM.from_config(self.config)
@@ -66,41 +65,52 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.callbacks.append(callback)
 
     def _register_callback_from_config(self):
-        local_dir = self.config.local_dir if hasattr(self.config, 'local_dir') else None
+        local_dir = self.config.local_dir if hasattr(self.config,
+                                                     'local_dir') else None
         if hasattr(self.config, 'callbacks'):
             callbacks = self.config.callbacks or []
             for _callback in callbacks:
                 if _callback not in callbacks_mapping:
                     if not self.trust_remote_code:
-                        raise AssertionError(f'[External Code Found] Your config file contains external code, '
-                                             f'instantiate the code may be UNSAFE, if you trust the code, '
-                                             f'please pass `trust_remote_code=True` or `--trust_remote_code true`')
+                        raise AssertionError(
+                            '[External Code Found] Your config file contains external code, '
+                            'instantiate the code may be UNSAFE, if you trust the code, '
+                            'please pass `trust_remote_code=True` or `--trust_remote_code true`'
+                        )
                     if sys.path[0] != local_dir:
                         assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
                         sys.path.insert(0, local_dir)
                     callback_file = importlib.import_module(_callback)
-                    module_classes = {name: cls for name, cls in inspect.getmembers(callback_file, inspect.isclass)}
+                    module_classes = {
+                        name: cls
+                        for name, cls in inspect.getmembers(
+                            callback_file, inspect.isclass)
+                    }
                     for name, cls in module_classes.items():
                         # Find cls which base class is `Callback`
-                        if cls.__bases__[0] is Callback and cls.__module__ == _callback:
+                        if cls.__bases__[
+                                0] is Callback and cls.__module__ == _callback:
                             self.callbacks.append(cls(self.config))
                 else:
-                    self.callbacks.append(callbacks_mapping[_callback](self.config))
+                    self.callbacks.append(callbacks_mapping[_callback](
+                        self.config))
 
     async def _loop_callback(self, point, messages: List[Message]):
         for callback in self.callbacks:
             await getattr(callback, point)(self.runtime, messages)
 
-    async def _parallel_tool_call(self, messages: List[Message]) -> List[Message]:
-        tool_call_result = await self.tool_manager.parallel_call_tool(messages[-1].tool_calls)
+    async def _parallel_tool_call(self,
+                                  messages: List[Message]) -> List[Message]:
+        tool_call_result = await self.tool_manager.parallel_call_tool(
+            messages[-1].tool_calls)
         assert len(tool_call_result) == len(messages[-1].tool_calls)
-        for tool_call_result, tool_call_query in zip(tool_call_result, messages[-1].tool_calls):
+        for tool_call_result, tool_call_query in zip(tool_call_result,
+                                                     messages[-1].tool_calls):
             _new_message = Message(
                 role='tool',
                 content=tool_call_result,
                 tool_call_id=tool_call_query['id'],
-                name=tool_call_query['tool_name']
-            )
+                name=tool_call_query['tool_name'])
             messages.append(_new_message)
             logger.info(_new_message.content)
         return messages
@@ -112,10 +122,13 @@ You are a robot assistant. You will be given many tools to help you complete tas
     async def _cleanup_tools(self):
         await self.tool_manager.cleanup()
 
-    async def _prepare_messages(self, inputs: Union[List[Message], str]) -> List[Message]:
+    async def _prepare_messages(
+            self, inputs: Union[List[Message], str]) -> List[Message]:
         if isinstance(inputs, list):
             return inputs
-        assert isinstance(inputs, str), f'inputs can be either a list or a string, but current is {type(inputs)}'
+        assert isinstance(
+            inputs, str
+        ), f'inputs can be either a list or a string, but current is {type(inputs)}'
         system = None
         query = None
         if hasattr(self.config, 'prompt'):
@@ -131,24 +144,28 @@ You are a robot assistant. You will be given many tools to help you complete tas
     async def _prepare_memory(self):
         if hasattr(self.config, 'memory'):
             for _memory in (self.config.memory or []):
-                assert _memory.name in memory_mapping, (f'{_memory.name} not in memory_mapping, '
-                                                   f'which supports: {list(memory_mapping.keys())}')
-                self.memory_tools.append(memory_mapping[_memory.name](self.config))
+                assert _memory.name in memory_mapping, (
+                    f'{_memory.name} not in memory_mapping, '
+                    f'which supports: {list(memory_mapping.keys())}')
+                self.memory_tools.append(memory_mapping[_memory.name](
+                    self.config))
 
     async def _prepare_planer(self):
         if hasattr(self.config, 'planer'):
             planer = self.config.planer
             if planer is not None:
-                assert planer.name in planer_mapping, (f'{planer.name} not in planer_mapping, '
-                                                   f'which supports: {list(planer_mapping.keys())}')
+                assert planer.name in planer_mapping, (
+                    f'{planer.name} not in planer_mapping, '
+                    f'which supports: {list(planer_mapping.keys())}')
                 self.planer = planer_mapping[planer.name](self.config)
 
     async def _prepare_rag(self):
         if hasattr(self.config, 'rag'):
             rag = self.config.rag
             if rag is not None:
-                assert rag.name in rag_mapping, (f'{rag.name} not in rag_mapping, '
-                                                   f'which supports: {list(rag_mapping.keys())}')
+                assert rag.name in rag_mapping, (
+                    f'{rag.name} not in rag_mapping, '
+                    f'which supports: {list(rag_mapping.keys())}')
                 self.rag: Rag = rag_mapping(rag.name)(self.config)
 
     async def _refine_memory(self, messages: List[Message]) -> List[Message]:
@@ -161,7 +178,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
             messages = await self.planer.update_plan(self.runtime, messages)
         return messages
 
-    def _handle_stream_message(self, messages: List[Message], tools: List[Tool]) -> List[Message]:
+    def _handle_stream_message(self, messages: List[Message],
+                               tools: List[Tool]) -> List[Message]:
         message = None
         for msg in self.llm.generate(messages, tools=tools):
             yield msg
@@ -184,8 +202,10 @@ You are a robot assistant. You will be given many tools to help you complete tas
         messages = await self._update_plan(messages)
         await self._loop_callback('on_generate_response', messages)
         tools = await self.tool_manager.get_tools()
-        if hasattr(self.config, 'generation_config') and getattr(self.config.generation_config, 'stream', False):
-            _response_message = self._handle_stream_message(messages, tools=tools)
+        if hasattr(self.config, 'generation_config') and getattr(
+                self.config.generation_config, 'stream', False):
+            _response_message = self._handle_stream_message(
+                messages, tools=tools)
         else:
             _response_message = self.llm.generate(messages, tools=tools)
 
@@ -211,7 +231,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
         """Run the agent, mainly contains a llm calling and tool calling loop.
 
         Args:
-            inputs(`Union[str, List[Message]]`): The inputs can be a prompt string, or a list of messages from the previous agent
+            inputs(`Union[str, List[Message]]`): The inputs can be a prompt string,
+                or a list of messages from the previous agent
         Returns:
             The final messages
         """
@@ -235,5 +256,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
             return messages
         except Exception as e:
             if hasattr(self.config, 'help'):
-                logger.error(f'Runtime error, please follow the instructions:\n\n {self.config.help}')
+                logger.error(
+                    f'Runtime error, please follow the instructions:\n\n {self.config.help}'
+                )
             raise e

@@ -21,87 +21,89 @@ class FileSystemTool(ToolBase):
         self.output_dir = getattr(file_system_config, 'output_dir', 'output')
 
     async def connect(self):
-        logger.warn(f'[IMPORTANT]FileSystemTool is not implemented with sandbox, please consider other similar '
-                    f'tools if you want to run dangerous code.')
+        logger.warn(
+            '[IMPORTANT]FileSystemTool is not implemented with sandbox, please consider other similar '
+            'tools if you want to run dangerous code.')
 
     async def get_tools(self):
         tools = {
-            'file_system': [Tool(
-                tool_name='create_directory',
-                server_name='file_system',
-                description='Create a directory',
-                parameters= {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "The relative path of the directory to create",
+            'file_system': [
+                Tool(
+                    tool_name='create_directory',
+                    server_name='file_system',
+                    description='Create a directory',
+                    parameters={
+                        'type': 'object',
+                        'properties': {
+                            'path': {
+                                'type':
+                                'string',
+                                'description':
+                                'The relative path of the directory to create',
                             }
                         },
-                        "required": [
-                            "path"
-                        ],
-                        "additionalProperties": False
-                    }
-        ),
+                        'required': ['path'],
+                        'additionalProperties': False
+                    }),
                 Tool(
                     tool_name='write_file',
                     server_name='file_system',
                     description='Write content into a file',
                     parameters={
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "The relative path of the file",
+                        'type': 'object',
+                        'properties': {
+                            'path': {
+                                'type': 'string',
+                                'description': 'The relative path of the file',
                             }
                         },
-                        "required": [
-                            "path"
-                        ],
-                        "additionalProperties": False
-                    }
-                ),
+                        'required': ['path'],
+                        'additionalProperties': False
+                    }),
                 Tool(
                     tool_name='read_file',
                     server_name='file_system',
                     description='Read the content of a file',
                     parameters={
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "The relative path of the file",
+                        'type': 'object',
+                        'properties': {
+                            'path': {
+                                'type': 'string',
+                                'description': 'The relative path of the file',
                             }
                         },
-                        "required": [
-                            "path"
-                        ],
-                        "additionalProperties": False
-                    }
-                ),
+                        'required': ['path'],
+                        'additionalProperties': False
+                    }),
                 Tool(
                     tool_name='list_files',
                     server_name='file_system',
                     description='List all files in a directory',
                     parameters={
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "string",
-                                "description": "The path to list files, if path is None or '' or not given, "
-                                               "the root dir will be used as path.",
+                        'type': 'object',
+                        'properties': {
+                            'path': {
+                                'type':
+                                'string',
+                                'description':
+                                "The path to list files, if path is None or '' or not given, "
+                                'the root dir will be used as path.',
                             }
                         },
-                        "required": [],
-                        "additionalProperties": False
-                    }
-                ),
+                        'required': [],
+                        'additionalProperties': False
+                    }),
             ]
         }
-        return {'file_system': [t for t in tools['file_system'] if t['tool_name'] not in self._exclude_functions]}
+        return {
+            'file_system': [
+                t for t in tools['file_system']
+                if t['tool_name'] not in self._exclude_functions
+            ]
+        }
 
-    async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict) -> str:
+    async def call_tool(self, server_name: str, *, tool_name: str,
+                        tool_args: dict) -> str:
         return await self.read_file(tool_args['path'])
 
     async def create_directory(self, path: str) -> str:

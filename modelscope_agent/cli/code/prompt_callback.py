@@ -1,14 +1,13 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import json
 from typing import List
 
-from omegaconf import DictConfig
-
-from modelscope_agent.callbacks import Callback
+import json
 from modelscope_agent.agent.runtime import Runtime
+from modelscope_agent.callbacks import Callback
 from modelscope_agent.cli.code.artifact_callback import ArtifactCallback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -59,7 +58,7 @@ Instructions for frontend design:
 * Implement a complete dark/light mode toggle functionality that follows system settings by default and allows users to manually switch.
 * Code structure should be clear and semantic, including appropriate comments.
 * Implement complete responsiveness that must display perfectly on all devices (mobile, tablet, desktop).
-"""
+""" # noqa
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
@@ -68,7 +67,8 @@ Instructions for frontend design:
         if self.is_default_workflow(runtime):
             return
 
-        metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm, messages)
+        metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm,
+                                                     messages)
         metadata = json.loads(metadata)
         task_type = metadata.get('task_type')
         if task_type != 'generate_code':

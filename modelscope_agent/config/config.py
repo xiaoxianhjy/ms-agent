@@ -2,12 +2,13 @@
 import argparse
 import os.path
 from copy import deepcopy
-from typing import Dict, Union, Any
+from typing import Any, Dict, Union
+
+from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf.basecontainer import BaseContainer
 
 from modelscope import snapshot_download
-from omegaconf import OmegaConf, DictConfig, ListConfig
-from omegaconf.basecontainer import BaseContainer
-from modelscope_agent.utils import get_logger
 from .env import Env
 
 logger = get_logger()
@@ -19,7 +20,9 @@ class Config:
     supported_config_names = ['config.yml', 'config.yaml']
 
     @classmethod
-    def from_task(cls, config_dir_or_id: str, env: Dict[str, str] = None) -> Union[DictConfig, ListConfig]:
+    def from_task(cls,
+                  config_dir_or_id: str,
+                  env: Dict[str, str] = None) -> Union[DictConfig, ListConfig]:
         """Read a task config file and return a config object.
 
         Args:
@@ -43,8 +46,9 @@ class Config:
                 if os.path.exists(config_file):
                     config = OmegaConf.load(config_file)
 
-        assert config is not None, (f'Cannot find any config file in {config_dir_or_id} named `config.json`, '
-                                    f'`config.yml` or `config.yaml`')
+        assert config is not None, (
+            f'Cannot find any config file in {config_dir_or_id} named `config.json`, '
+            f'`config.yml` or `config.yaml`')
         envs = Env.load_env(env)
         cls._update_config(config, envs)
         _dict_config = cls.parse_args()
@@ -61,12 +65,14 @@ class Config:
             for idx in range(0, len(unknown), 2):
                 key = unknown[idx]
                 value = unknown[idx + 1]
-                assert key.startswith('--'), f'Parameter not correct: {unknown}'
+                assert key.startswith(
+                    '--'), f'Parameter not correct: {unknown}'
                 _dict_config[key[2:]] = value
         return _dict_config
 
     @staticmethod
-    def _update_config(config: Union[DictConfig, ListConfig], extra: Dict[str, str]=None):
+    def _update_config(config: Union[DictConfig, ListConfig],
+                       extra: Dict[str, str] = None):
         if not extra:
             return config
 
@@ -79,8 +85,9 @@ class Config:
                         if name in extra:
                             logger.info(f'Replacing {name} with extra value.')
                             setattr(_config, name, extra[name])
-                        if (isinstance(value, str) and value.startswith('<') and
-                                value.endswith('>') and value[1:-1] in extra):
+                        if (isinstance(value, str) and value.startswith('<')
+                                and value.endswith('>')
+                                and value[1:-1] in extra):
                             logger.info(f'Replacing {value} with extra value.')
                             setattr(_config, name, extra[name])
 
@@ -90,8 +97,9 @@ class Config:
                     if isinstance(value, BaseContainer):
                         traverse_config(value)
                     else:
-                        if (isinstance(value, str) and value.startswith('<') and
-                                value.endswith('>') and value[1:-1] in extra):
+                        if (isinstance(value, str) and value.startswith('<')
+                                and value.endswith('>')
+                                and value[1:-1] in extra):
                             logger.info(f'Replacing {value} with extra value.')
                             _config[idx] = extra[value[1:-1]]
 
@@ -99,13 +107,11 @@ class Config:
         return None
 
     @staticmethod
-    def convert_mcp_servers_to_json(config: Union[DictConfig, ListConfig]) -> Dict[str, Dict[str, Any]]:
+    def convert_mcp_servers_to_json(
+            config: Union[DictConfig,
+                          ListConfig]) -> Dict[str, Dict[str, Any]]:
         """Convert the mcp servers to json mcp config."""
-        servers = {
-            'mcpServers': {
-
-            }
-        }
+        servers = {'mcpServers': {}}
         if getattr(config, 'tools', None):
             for server, server_config in config.tools.items():
                 if getattr(server_config, 'mcp', True):

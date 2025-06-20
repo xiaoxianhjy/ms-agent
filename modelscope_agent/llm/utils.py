@@ -1,7 +1,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from dataclasses import dataclass, asdict
-from dataclasses import field
-from typing import List, Dict, Any, Optional
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, List, Optional
 
 from typing_extensions import Literal, Required, TypedDict
 
@@ -48,4 +47,3 @@ class Message:
 
     def to_dict(self):
         return asdict(self)
-

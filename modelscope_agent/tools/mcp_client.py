@@ -1,17 +1,16 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from contextlib import AsyncExitStack
-from typing import Any, Dict, Literal, Optional, List
+from typing import Any, Dict, List, Literal, Optional
 
-from mcp import ClientSession, StdioServerParameters, ListToolsResult
+from mcp import ClientSession, ListToolsResult, StdioServerParameters
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
-from omegaconf import DictConfig
-
 from modelscope_agent.config import Config
 from modelscope_agent.config.env import Env
 from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -34,11 +33,14 @@ class MCPClient(ToolBase):
         mcp_config(`Optional[Dict[str, Any]]`): Extra mcp servers in json format.
     """
 
-    def __init__(self, config: DictConfig, mcp_config: Optional[Dict[str, Any]] = None):
+    def __init__(self,
+                 config: DictConfig,
+                 mcp_config: Optional[Dict[str, Any]] = None):
         super().__init__(config)
         self.sessions: Dict[str, ClientSession] = {}
         self.exit_stack = AsyncExitStack()
-        self.mcp_config: Dict[str, Dict[str, Any]] = Config.convert_mcp_servers_to_json(config)
+        self.mcp_config: Dict[str, Dict[
+            str, Any]] = Config.convert_mcp_servers_to_json(config)
         self._exclude_functions = {}
         if mcp_config is not None:
             self.mcp_config.update(mcp_config)
@@ -49,7 +51,7 @@ class MCPClient(ToolBase):
             tool_name, tool_args)
         texts = []
         if response.isError:
-            sep = "\n\n"
+            sep = '\n\n'
             return f'execute error: {sep.join(response.content)}'
         for content in response.content:
             if content.type == 'text':
@@ -65,22 +67,29 @@ class MCPClient(ToolBase):
             exclude = []
             if key in self._exclude_functions:
                 exclude = self._exclude_functions[key]
-            _session_tools = [t for t in _session_tools if t.name not in exclude]
-            _session_tools = [Tool(tool_name=t.name,
-                                   server_name=key,
-                                   description=t.description,
-                                   parameters=t.inputSchema) for t in _session_tools]
+            _session_tools = [
+                t for t in _session_tools if t.name not in exclude
+            ]
+            _session_tools = [
+                Tool(
+                    tool_name=t.name,
+                    server_name=key,
+                    description=t.description,
+                    parameters=t.inputSchema) for t in _session_tools
+            ]
             tools[key].extend(_session_tools)
         return tools
 
     @staticmethod
     def print_tools(server_name: str, tools: ListToolsResult):
         tools = tools.tools
-        sep = ","
+        sep = ','
         if len(tools) > 10:
             tools = [tool.name for tool in tools][:10]
-            logger.info(f'\nConnected to server "{server_name}" '
-                        f'with tools: \n{sep.join(tools)}\nOnly list first 10 of them.')
+            logger.info(
+                f'\nConnected to server "{server_name}" '
+                f'with tools: \n{sep.join(tools)}\nOnly list first 10 of them.'
+            )
         else:
             tools = [tool.name for tool in tools]
             logger.info(f'\nConnected to server "{server_name}" '
@@ -149,7 +158,8 @@ class MCPClient(ToolBase):
             }
             if 'exclude' in server:
                 self._exclude_functions[name] = server.pop('exclude')
-            await self.connect_to_server(server_name=name, env=env_dict, **server)
+            await self.connect_to_server(
+                server_name=name, env=env_dict, **server)
 
     async def cleanup(self):
         """Clean up resources"""

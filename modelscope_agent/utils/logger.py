@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from types import MethodType
 from typing import Optional
 
-
 init_loggers = {}
 
 logger_format = logging.Formatter('[%(levelname)s:%(name)s] %(message)s')
@@ -31,7 +30,9 @@ def warning_once(self, msg, *args, **kwargs):
     self.warning(msg)
 
 
-def get_logger(log_file: Optional[str] = None, log_level: Optional[int] = None, file_mode: str = 'w'):
+def get_logger(log_file: Optional[str] = None,
+               log_level: Optional[int] = None,
+               file_mode: str = 'w'):
     """ Get logging logger
 
     Args:

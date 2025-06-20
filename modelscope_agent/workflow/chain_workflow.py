@@ -1,20 +1,20 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import Optional, Dict, Type
+from typing import Dict, Optional, Type
 
+from modelscope_agent.agent import Agent
+from modelscope_agent.config import Config
 from omegaconf import DictConfig
 
-from modelscope_agent.config import Config
-from modelscope_agent.agent import Agent
 from .base import Workflow
 
 
 class ChainWorkflow(Workflow):
 
     def __init__(self,
-                 config_dir_or_id: Optional[str]=None,
-                 config: Optional[DictConfig]=None,
-                 env: Optional[Dict[str, str]]=None,
+                 config_dir_or_id: Optional[str] = None,
+                 config: Optional[DictConfig] = None,
+                 env: Optional[Dict[str, str]] = None,
                  **kwargs):
         if config_dir_or_id is None:
             self.config = config
@@ -35,7 +35,9 @@ class ChainWorkflow(Workflow):
                 if isinstance(next_tasks, str):
                     has_next.add(next_tasks)
                 else:
-                    assert len(next_tasks) == 1, 'ChainWorkflow only supports one next task'
+                    assert len(
+                        next_tasks
+                    ) == 1, 'ChainWorkflow only supports one next task'
                     has_next.update(next_tasks)
 
         for task_name in self.config.keys():
@@ -44,7 +46,7 @@ class ChainWorkflow(Workflow):
                 break
 
         if start_task is None:
-            raise ValueError("No start task found")
+            raise ValueError('No start task found')
 
         result = []
         current_task = start_task
@@ -78,4 +80,3 @@ class ChainWorkflow(Workflow):
             inputs = await engine.run(inputs, **kwargs)
             config = engine.config
         return inputs
-

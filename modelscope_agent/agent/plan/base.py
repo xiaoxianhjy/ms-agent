@@ -2,10 +2,9 @@
 from abc import abstractmethod
 from typing import List
 
-from pydantic import ConfigDict
-
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.llm.utils import Message
+from pydantic import ConfigDict
 
 
 class Planer:
@@ -15,7 +14,8 @@ class Planer:
         self.config = config
 
     @abstractmethod
-    async def make_plan(self, runtime: Runtime, messages: List[Message]) -> List[Message]:
+    async def make_plan(self, runtime: Runtime,
+                        messages: List[Message]) -> List[Message]:
         """Make an initial plan
 
         Args:
@@ -25,7 +25,8 @@ class Planer:
         pass
 
     @abstractmethod
-    async def update_plan(self, runtime: Runtime, messages: List[Message]) -> List[Message]:
+    async def update_plan(self, runtime: Runtime,
+                          messages: List[Message]) -> List[Message]:
         """Update the plan
 
         Args:
@@ -33,4 +34,3 @@ class Planer:
             messages (`List[Message]`): The input messages
         """
         pass
-

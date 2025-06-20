@@ -1,8 +1,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
-import json
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List, Tuple
 
+import json
 from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
@@ -13,6 +13,7 @@ from modelscope_agent.tools.split_task import SplitTask
 class ToolManager:
     """Interacting with Agent class, hold all tools
     """
+
     def __init__(self, config):
         self.config = config
         self.servers = MCPClient(config)
@@ -40,10 +41,13 @@ class ToolManager:
 
     async def reindex_tool(self):
 
-        def extend_tool(tool_ins: ToolBase, server_name: str, tool_list: List[Tool]):
+        def extend_tool(tool_ins: ToolBase, server_name: str,
+                        tool_list: List[Tool]):
             for tool in tool_list:
-                assert tool['tool_name'] not in self._tool_index, f'Tool name duplicated {tool["tool_name"]}'
-                self._tool_index[tool['tool_name']] = (tool_ins, server_name, tool)
+                assert tool[
+                    'tool_name'] not in self._tool_index, f'Tool name duplicated {tool["tool_name"]}'
+                self._tool_index[tool['tool_name']] = (tool_ins, server_name,
+                                                       tool)
 
         mcps = await self.servers.get_tools()
         for server_name, tool_list in mcps.items():
@@ -63,9 +67,11 @@ class ToolManager:
             tool_args = json.loads(tool_args)
         assert tool_name in self._tool_index, 'Tool name not found'
         tool_ins, server_name, _ = self._tool_index[tool_name]
-        return await tool_ins.call_tool(server_name, tool_name=tool_name, tool_args=tool_args)
+        return await tool_ins.call_tool(
+            server_name, tool_name=tool_name, tool_args=tool_args)
 
-    async def parallel_call_tool(self, tool_list: List[Tuple[str, Dict[str, Any]]]):
+    async def parallel_call_tool(self, tool_list: List[Tuple[str, Dict[str,
+                                                                       Any]]]):
         tasks = [self.single_call_tool(tool) for tool in tool_list]
         result = await asyncio.gather(*tasks)
         return result

@@ -2,8 +2,8 @@
 import asyncio
 import os
 
-from modelscope_agent.config import Config
 from modelscope_agent.agent import SimpleLLMAgent
+from modelscope_agent.config import Config
 
 if __name__ == '__main__':
     cur_file = __file__

@@ -2,7 +2,7 @@
 from abc import abstractmethod
 from typing import Optional, Type
 
-from modelscope_agent.agent import SimpleLLMAgent, Agent, CodeAgent
+from modelscope_agent.agent import Agent, CodeAgent, SimpleLLMAgent
 
 
 class Workflow:

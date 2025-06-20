@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 class Env:
 
     @staticmethod
-    def load_env(envs: Dict[str, str]=None) -> Dict[str, str]:
+    def load_env(envs: Dict[str, str] = None) -> Dict[str, str]:
         """Load environment variables from .env file and merges with the input envs"""
         load_dotenv()
         _envs = copy(os.environ)

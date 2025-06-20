@@ -1,6 +1,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 class ToolBase:
@@ -43,7 +43,8 @@ class ToolBase:
         pass
 
     @abstractmethod
-    async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict) -> str:
+    async def call_tool(self, server_name: str, *, tool_name: str,
+                        tool_args: dict) -> str:
         """Call a tool.
 
         Args:

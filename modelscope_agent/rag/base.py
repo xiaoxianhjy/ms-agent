@@ -1,6 +1,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import List, Any
+from typing import Any, List
 
 from modelscope_agent.llm import Message
 
@@ -27,10 +27,10 @@ class Rag:
 
     @abstractmethod
     async def search_documents(self,
-                         query: str,
-                         limit: int = 5,
-                         score_threshold: float=0.7,
-                         **filters) -> List[Any]:
+                               query: str,
+                               limit: int = 5,
+                               score_threshold: float = 0.7,
+                               **filters) -> List[Any]:
         """Search documents in Rag
 
         Args:

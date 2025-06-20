@@ -1,6 +1,5 @@
-from omegaconf import DictConfig
-
 from modelscope_agent.agent.code.base import Code
+from omegaconf import DictConfig
 
 
 class RemoveArchReview(Code):

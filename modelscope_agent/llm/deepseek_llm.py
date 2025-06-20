@@ -1,17 +1,25 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from typing import List
 
-from modelscope_agent.llm.utils import Message, Tool
 from modelscope_agent.llm.openai_llm import OpenAI
+from modelscope_agent.llm.utils import Message, Tool
 from omegaconf import DictConfig
+
 
 class DeepSeek(OpenAI):
     input_msg = {'role', 'content', 'tool_calls', 'prefix'}
 
     def __init__(self, config: DictConfig):
-        super().__init__(config, base_url=config.llm.deepseek_base_url, api_key=config.llm.deepseek_api_key)
+        super().__init__(
+            config,
+            base_url=config.llm.deepseek_base_url,
+            api_key=config.llm.deepseek_api_key)
 
-    def _continue_generate(self, messages: List[Message], new_message, tools: List[Tool] = None, **kwargs):
+    def _continue_generate(self,
+                           messages: List[Message],
+                           new_message,
+                           tools: List[Tool] = None,
+                           **kwargs):
         # ref: https://api-docs.deepseek.com/zh-cn/guides/chat_prefix_completion
         if messages and messages[-1].to_dict().get('prefix', False):
 
@@ -28,7 +36,8 @@ class DeepSeek(OpenAI):
 
         messages = self.format_input_message(messages)
         stop = kwargs.pop('stop', []).append('```')
-        return self._call_llm(messages=messages, tools=tools, stop=stop, **kwargs)
+        return self._call_llm(
+            messages=messages, tools=tools, stop=stop, **kwargs)
 
 
 if __name__ == '__main__':
@@ -37,15 +46,15 @@ if __name__ == '__main__':
 
     # 创建一个嵌套的字典结构
     conf: DictConfig = OmegaConf.create({
-        "llm": {
-            "model": "deepseek-reasoner",
-            "deepseek_base_url": "https://api.deepseek.com/beta/v1",
-            "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY"),
-            "openai_base_url": "https://api-inference.modelscope.cn/v1",
-            "openai_api_key": os.getenv("MODELSCOPE_API_KEY"),
-            "generation_config": {
-                "stream": True,
-                "max_tokens": 500,
+        'llm': {
+            'model': 'deepseek-reasoner',
+            'deepseek_base_url': 'https://api.deepseek.com/beta/v1',
+            'deepseek_api_key': os.getenv('DEEPSEEK_API_KEY'),
+            'openai_base_url': 'https://api-inference.modelscope.cn/v1',
+            'openai_api_key': os.getenv('MODELSCOPE_API_KEY'),
+            'generation_config': {
+                'stream': True,
+                'max_tokens': 500,
             }
         }
     })
@@ -58,11 +67,14 @@ if __name__ == '__main__':
     ]
 
     # tools = [
-    #     # Tool(server_name='amap-maps', tool_name='maps_regeocode', description='将一个高德经纬度坐标转换为行政区划地址信息', parameters={'type': 'object', 'properties': {'location': {'type': 'string', 'description': '经纬度'}}, 'required': ['location']}),
-    #     Tool(tool_name='mkdir', description='在文件系统创建目录', parameters={'type': 'object', 'properties': {'dir_name': {'type': 'string', 'description': '目录名'}}, 'required': ['dir_name']})
+    #     # Tool(server_name='amap-maps', tool_name='maps_regeocode',
+    #       description='将一个高德经纬度坐标转换为行政区划地址信息',
+    #       parameters={'type': 'object', 'properties': {'location': {'type': 'string', 'description': '经纬度'}},
+    #       'required': ['location']}),
+    #     Tool(tool_name='mkdir', description='在文件系统创建目录', parameters={'type': 'object', 'properties':
+    #     {'dir_name': {'type': 'string', 'description': '目录名'}}, 'required': ['dir_name']})
     # ]
     tools = None
-
 
     # 打印配置
     print(OmegaConf.to_yaml(conf))
@@ -74,7 +86,11 @@ if __name__ == '__main__':
     #     print(chunk)
 
     # kwargs覆盖conf
-    message = llm.generate(messages=messages, tools=tools, stream=False, extra_body={'enable_thinking': False})
+    message = llm.generate(
+        messages=messages,
+        tools=tools,
+        stream=False,
+        extra_body={'enable_thinking': False})
     print(message)
     messages.append(message)
     # messages.append(Message(role='tool', content='北京市朝阳区崔各庄阿里巴巴朝阳科技园'))

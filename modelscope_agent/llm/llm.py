@@ -1,12 +1,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import Any, Dict, Optional, List
-
-from omegaconf import DictConfig
+from typing import Any, Dict, List, Optional
 
 from modelscope_agent.config.config import Config
 from modelscope_agent.llm import Message
 from modelscope_agent.llm.utils import Tool
+from omegaconf import DictConfig
 
 
 class LLM:
@@ -20,7 +19,11 @@ class LLM:
         self.config = config
 
     @abstractmethod
-    def generate(self, messages: List[Message], model: Optional[str] = None, tools: Optional[List[Tool]]=None, **kwargs) -> Any:
+    def generate(self,
+                 messages: List[Message],
+                 model: Optional[str] = None,
+                 tools: Optional[List[Tool]] = None,
+                 **kwargs) -> Any:
         """Generate response by the given messages.
 
         Args:
@@ -35,7 +38,10 @@ class LLM:
         pass
 
     @classmethod
-    def from_task(cls, config_dir_or_id: str, *, env: Optional[Dict[str, str]] = None) -> Any:
+    def from_task(cls,
+                  config_dir_or_id: str,
+                  *,
+                  env: Optional[Dict[str, str]] = None) -> Any:
         """Instantiate an LLM instance.
 
         Args:
@@ -48,7 +54,6 @@ class LLM:
         """
         config = Config.from_task(config_dir_or_id, env)
         return cls.from_config(config)
-
 
     @classmethod
     def from_config(cls, config: DictConfig) -> Any:
