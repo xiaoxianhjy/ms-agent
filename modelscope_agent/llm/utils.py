@@ -1,7 +1,9 @@
-from dataclasses import dataclass, field
-from typing import Literal, Union, List, Dict, Any, Optional
-from typing_extensions import Literal, Required, TypedDict
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from dataclasses import dataclass, asdict
+from dataclasses import field
+from typing import List, Dict, Any, Optional
+
+from typing_extensions import Literal, Required, TypedDict
 
 
 class ToolCall(TypedDict, total=False):
@@ -21,14 +23,10 @@ class Tool(TypedDict, total=False):
 
     parameters: Dict[str, Any] = dict()
 
-# {'role': 'assistant', 'content': '', 'tool_calls': [
-#             ChatCompletionMessageToolCall(id='call_eaa1051b186744ed97f4ef', function=Function(
-#                 arguments='{"keywords": "咖啡馆", "location": "120.096834,30.274659", "radius": "1000"}',
-#                 name='amap-maps---maps_around_search'), type='function', index=0)]
 
 @dataclass
 class Message:
-    role: Required[Literal['system', 'user', 'assistant', 'tool']]
+    role: Literal['system', 'user', 'assistant', 'tool']
 
     content: str = ''
 
@@ -38,13 +36,13 @@ class Message:
 
     name: Optional[str] = None
 
-    # 输出需要，输入时pop
+    # needed for output
     reasoning_content: str = ''
 
-    # 记录模型返回的request_id，以便调试排查
+    # request id
     id: str = ''
 
-    # 续写模式
+    # continue generation mode
     partial: bool = False
     prefix: bool = False
 

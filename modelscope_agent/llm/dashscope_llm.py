@@ -1,3 +1,4 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from typing import List
 
 from modelscope_agent.llm.utils import Message, Tool

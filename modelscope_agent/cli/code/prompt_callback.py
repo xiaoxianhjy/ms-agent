@@ -1,3 +1,4 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import json
 from typing import List
 
@@ -5,6 +6,7 @@ from omegaconf import DictConfig
 
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.agent.runtime import Runtime
+from modelscope_agent.cli.code.artifact_callback import ArtifactCallback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
 
@@ -15,7 +17,7 @@ class PromptCallback(Callback):
 
     _prompt = """
 
-Here are some specific instructions for frontend design:
+Instructions for frontend design:
 
 * **Overall Style:** Consider magazine-style, publication-style, or other modern web design styles you deem appropriate. The goal is to create a page that is both informative and visually appealing, like a well-designed digital magazine or in-depth feature article.
 
@@ -63,7 +65,13 @@ Here are some specific instructions for frontend design:
         super().__init__(config)
 
     async def on_tool_call(self, runtime: Runtime, messages: List[Message]):
-        if runtime.tag != 'Default workflow':
+        if self.is_default_workflow(runtime):
+            return
+
+        metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm, messages)
+        metadata = json.loads(metadata)
+        task_type = metadata.get('task_type')
+        if task_type != 'generate_code':
             return
 
         if messages[-1].tool_calls:
@@ -78,5 +86,5 @@ Here are some specific instructions for frontend design:
                 system = task['system']
                 system = system + self._prompt
                 task['system'] = system
-            # some model require arguments to be a string, for the next llm_call's input
+            # some models require arguments to be a string, for the next llm_call's input
             tool_call['arguments'] = json.dumps(tool_args)

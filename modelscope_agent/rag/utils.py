@@ -1,5 +1,3 @@
-from modelscope_agent.rag.mcp_rag import MCPRag
-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 rag_mapping  = {
-    'mcp_rag': MCPRag,
 }

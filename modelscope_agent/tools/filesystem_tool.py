@@ -1,38 +1,41 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import os
-
-from omegaconf import OmegaConf
 
 from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
-from modelscope_agent.tools.mcp_client import MCPClient
+from modelscope_agent.utils import get_logger
+
+logger = get_logger()
 
 
 class FileSystemTool(ToolBase):
+    """A file system operation tool
+
+    TODO: This tool now is a simple implementation, sandbox or mcp TBD.
+    """
 
     def __init__(self, config):
         super(FileSystemTool, self).__init__(config)
-        self.prefix = 'output'
-        # base_path = os.path.dirname(__file__)
-        # mcp_file = os.path.join(base_path, 'filesystem.yaml')
-        # self.mcp_client = MCPClient(OmegaConf.load(mcp_file))
-
+        file_system_config = config.tools.file_system
+        self._exclude_functions = getattr(file_system_config, 'exclude', [])
+        self.output_dir = getattr(file_system_config, 'output_dir', 'output')
 
     async def connect(self):
-        # await self.mcp_client.connect()
-        pass
+        logger.warn(f'[IMPORTANT]FileSystemTool is not implemented with sandbox, please consider other similar '
+                    f'tools if you want to run dangerous code.')
 
     async def get_tools(self):
-        return {
-            'split_task': [Tool(
-                tool_name='read_file',
+        tools = {
+            'file_system': [Tool(
+                tool_name='create_directory',
                 server_name='file_system',
-                description='Read the content of a file',
+                description='Create a directory',
                 parameters= {
                         "type": "object",
                         "properties": {
                             "path": {
                                 "type": "string",
-                                "description": "The path of the file",
+                                "description": "The relative path of the directory to create",
                             }
                         },
                         "required": [
@@ -40,40 +43,131 @@ class FileSystemTool(ToolBase):
                         ],
                         "additionalProperties": False
                     }
-        )]
+        ),
+                Tool(
+                    tool_name='write_file',
+                    server_name='file_system',
+                    description='Write content into a file',
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "The relative path of the file",
+                            }
+                        },
+                        "required": [
+                            "path"
+                        ],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    tool_name='read_file',
+                    server_name='file_system',
+                    description='Read the content of a file',
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "The relative path of the file",
+                            }
+                        },
+                        "required": [
+                            "path"
+                        ],
+                        "additionalProperties": False
+                    }
+                ),
+                Tool(
+                    tool_name='list_files',
+                    server_name='file_system',
+                    description='List all files in a directory',
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "The path to list files, if path is None or '' or not given, "
+                                               "the root dir will be used as path.",
+                            }
+                        },
+                        "required": [],
+                        "additionalProperties": False
+                    }
+                ),
+            ]
         }
+        return {'file_system': [t for t in tools['file_system'] if t['tool_name'] not in self._exclude_functions]}
 
-    async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict):
+    async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict) -> str:
         return await self.read_file(tool_args['path'])
 
-    async def create_directory(self, path: str):
-        os.makedirs(path, exist_ok=True)
-        return '<OK>'
-        # return await self.call_tool('filesystem', tool_name='create_directory', tool_args={'path': path})
+    async def create_directory(self, path: str) -> str:
+        """Create a directory
+
+        Args:
+            path(`str`): The relative directory path to create, a prefix dir will be automatically concatenated.
+
+        Returns:
+            <OK> or error message.
+        """
+        try:
+            os.makedirs(os.path.join(self.output_dir, path), exist_ok=True)
+            return '<OK>'
+        except Exception as e:
+            return 'Create directory failed, error: ' + str(e)
 
     async def write_file(self, path: str, content: str):
-        with open(path, 'w') as f:
-            f.write(content)
-        return '<OK>'
-        # return await self.call_tool('filesystem', tool_name='write_file', tool_args={'path': path, 'content': content})
+        """Write content to a file.
+
+        Args:
+            path(`path`): The relative file path to write into, a prefix dir will be automatically concatenated.
+            content:
+
+        Returns:
+            <OK> or error message.
+        """
+        try:
+            with open(os.path.join(self.output_dir, path), 'w') as f:
+                f.write(content)
+            return '<OK>'
+        except Exception as e:
+            return 'Write file failed, error: ' + str(e)
 
     async def read_file(self, path: str):
+        """Read the content of a file.
+
+        Args:
+            path(`path`): The relative file path to read, a prefix dir will be automatically concatenated.
+
+        Returns:
+            The file content or error message.
+        """
         try:
-            if not path.startswith(self.prefix):
-                path = os.path.join(self.prefix, path)
-            with open(path, 'r') as f:
+            with open(os.path.join(self.output_dir, path), 'r') as f:
                 return f.read()
-        except Exception:
-            return 'Code file not found or error, need regenerate.'
-        # return await self.call_tool('filesystem', tool_name='read_file', tool_args={'path': path})
+        except Exception as e:
+            return 'Read file failed, error: ' + str(e)
 
     async def list_files(self, path: str = None):
+        """List all files in a directory.
+
+        Args:
+            path: The relative path to traverse, a prefix dir will be automatically concatenated.
+
+        Returns:
+            The file names concatenated as a string
+        """
         file_paths = []
         if not path:
-            path = self.prefix
+            path = self.output_dir
+        else:
+            path = os.path.join(self.output_dir, path)
         for root, dirs, files in os.walk(path):
             for file in files:
                 absolute_path = os.path.join(root, file)
                 relative_path = os.path.relpath(absolute_path, path)
                 file_paths.append(relative_path)
-        return file_paths
+        return '\n'.join(file_paths)

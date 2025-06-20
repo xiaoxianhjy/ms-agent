@@ -1,7 +1,9 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
 import json
 from typing import List, Tuple, Dict, Any
 
+from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.tools.mcp_client import MCPClient
@@ -9,7 +11,8 @@ from modelscope_agent.tools.split_task import SplitTask
 
 
 class ToolManager:
-
+    """Interacting with Agent class, hold all tools
+    """
     def __init__(self, config):
         self.config = config
         self.servers = MCPClient(config)
@@ -37,7 +40,7 @@ class ToolManager:
 
     async def reindex_tool(self):
 
-        def extend_tool(tool_ins: ToolBase, server_name: str, tool_list: List):
+        def extend_tool(tool_ins: ToolBase, server_name: str, tool_list: List[Tool]):
             for tool in tool_list:
                 assert tool['tool_name'] not in self._tool_index, f'Tool name duplicated {tool["tool_name"]}'
                 self._tool_index[tool['tool_name']] = (tool_ins, server_name, tool)
@@ -55,8 +58,6 @@ class ToolManager:
 
     async def single_call_tool(self, tool_info: Dict[str, Any]):
         tool_name = tool_info['tool_name']
-        if '---' in tool_name:
-            tool_name = tool_name.split('---')[1]
         tool_args = tool_info['arguments']
         if isinstance(tool_args, str):
             tool_args = json.loads(tool_args)

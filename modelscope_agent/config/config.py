@@ -1,3 +1,4 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
 import os.path
 from copy import deepcopy
@@ -13,6 +14,7 @@ logger = get_logger()
 
 
 class Config:
+    """All tasks begin from a config"""
 
     supported_config_names = ['config.yml', 'config.yaml']
 
@@ -51,7 +53,7 @@ class Config:
         return config
 
     @staticmethod
-    def parse_args():
+    def parse_args() -> Dict[str, Any]:
         arg_parser = argparse.ArgumentParser()
         args, unknown = arg_parser.parse_known_args()
         _dict_config = {}
@@ -97,7 +99,7 @@ class Config:
         return None
 
     @staticmethod
-    def convert_mcp_servers_to_json(config: Union[DictConfig, ListConfig]):
+    def convert_mcp_servers_to_json(config: Union[DictConfig, ListConfig]) -> Dict[str, Dict[str, Any]]:
         """Convert the mcp servers to json mcp config."""
         servers = {
             'mcpServers': {

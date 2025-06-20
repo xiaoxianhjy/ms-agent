@@ -1,9 +1,11 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from contextlib import AsyncExitStack
 from typing import Any, Dict, Literal, Optional, List
 
 from mcp import ClientSession, StdioServerParameters, ListToolsResult
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
+from omegaconf import DictConfig
 
 from modelscope_agent.config import Config
 from modelscope_agent.config.env import Env
@@ -23,12 +25,20 @@ DEFAULT_SSE_READ_TIMEOUT = 60 * 5
 
 
 class MCPClient(ToolBase):
+    """MCP client for all mcp tools
 
-    def __init__(self, config, mcp_config: Optional[Dict[str, Any]] = None):
+    This class can hold multiple mcp servers.
+
+    Args:
+        config(`DictConfig`): The config instance.
+        mcp_config(`Optional[Dict[str, Any]]`): Extra mcp servers in json format.
+    """
+
+    def __init__(self, config: DictConfig, mcp_config: Optional[Dict[str, Any]] = None):
         super().__init__(config)
         self.sessions: Dict[str, ClientSession] = {}
         self.exit_stack = AsyncExitStack()
-        self.mcp_config = Config.convert_mcp_servers_to_json(config)
+        self.mcp_config: Dict[str, Dict[str, Any]] = Config.convert_mcp_servers_to_json(config)
         self._exclude_functions = {}
         if mcp_config is not None:
             self.mcp_config.update(mcp_config)

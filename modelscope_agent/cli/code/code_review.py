@@ -34,7 +34,6 @@ Now begin:
         super().__init__(config)
         self.llm = LLM.from_config(self.config)
         self.file_system = FileSystemTool(config)
-        self.output_dir = getattr(config, 'output_dir', 'output')
 
     async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
         await self.file_system.connect()
@@ -92,7 +91,7 @@ Now begin:
         tool_result = await split_task.call_tool('split_task',
                                                  tool_name='split_to_sub_task',
                                                  tool_args=sub_tasks)
-        all_local_files = '\n'.join(await self.file_system.list_files())
+        all_local_files = await self.file_system.list_files()
         query = f"""A coding checking has been done. Here is the code checking result: 
 
 {tool_result}

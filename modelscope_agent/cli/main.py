@@ -11,6 +11,7 @@ ROUTE_MAPPING: Dict[str, str] = {
 
 
 def cli_main(route_mapping: Optional[Dict[str, str]] = None) -> None:
+    """Entry point for the CLI application."""
     route_mapping = route_mapping or ROUTE_MAPPING
     argv = sys.argv[1:]
     method_name = argv[0].replace('_', '-')

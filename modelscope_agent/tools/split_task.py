@@ -1,3 +1,4 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
 
 from omegaconf import DictConfig
@@ -7,6 +8,7 @@ from modelscope_agent.tools.base import ToolBase
 
 
 class SplitTask(ToolBase):
+    """A tool special for task splitting"""
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
@@ -44,7 +46,11 @@ class SplitTask(ToolBase):
 
 
     async def call_tool(self, server_name: str, *, tool_name: str, tool_args: dict):
-        from modelscope_agent.agent import SimpleEngine
+        """
+        1. SimpleLLMAgent will be used to start subtask
+        2. config will be inherited from the parent task
+        """
+        from modelscope_agent.agent import SimpleLLMAgent
         tasks = tool_args.get('tasks')
         sub_tasks = []
         for i, task in enumerate(tasks):
@@ -53,7 +59,7 @@ class SplitTask(ToolBase):
             config = DictConfig(self.config)
             config.prompt.system = system
             trust_remote_code = getattr(config, 'trust_remote_code', False)
-            engine = SimpleEngine(config=config, trust_remote_code=trust_remote_code)
+            engine = SimpleLLMAgent(config=config, trust_remote_code=trust_remote_code)
             sub_tasks.append(engine.run(query, tag=f'workflow {i}'))
         result = await asyncio.gather(*sub_tasks)
         res = []

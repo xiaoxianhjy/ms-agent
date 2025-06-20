@@ -22,7 +22,6 @@ class ArtifactCallback(Callback):
     def __init__(self, config: DictConfig):
         super().__init__(config)
         self.file_system = FileSystemTool(config)
-        self.output_dir = getattr(config, 'output_dir', 'output')
 
     async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
         await self.file_system.connect()
@@ -113,8 +112,8 @@ Your answer should be:
             if code:
                 try:
                     dirs = os.path.dirname(code_file)
-                    await self.file_system.create_directory(os.path.join(self.output_dir, dirs))
-                    await self.file_system.write_file(os.path.join(self.output_dir, code_file), code)
+                    await self.file_system.create_directory(dirs)
+                    await self.file_system.write_file(code_file, code)
                     messages.append(Message(role='assistant', content=f'[OK] <file:{code_file}>Original query: {messages[1].content}'
                                                                       f'Task sunning successfully, '
                                                                       f'the code has been saved in the {code_file} file.'))

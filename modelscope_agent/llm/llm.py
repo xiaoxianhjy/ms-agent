@@ -1,10 +1,12 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, List
 
 from omegaconf import DictConfig
 
 from modelscope_agent.config.config import Config
-from modelscope_agent.llm.utils import Message
+from modelscope_agent.llm import Message
+from modelscope_agent.llm.utils import Tool
 
 
 class LLM:
@@ -18,12 +20,13 @@ class LLM:
         self.config = config
 
     @abstractmethod
-    def generate(self, messages, model: Optional[str] = None, tools=None, **kwargs) -> Any:
+    def generate(self, messages: List[Message], model: Optional[str] = None, tools: Optional[List[Tool]]=None, **kwargs) -> Any:
         """Generate response by the given messages.
 
         Args:
-            messages: The previous messages.
-            tools: The tools to use.
+            messages(`List[Message]`): The previous messages.
+            model(`Optional[str]`): The model to use, use model in config if not specified
+            tools(`List[Tool]`): The tools to use.
             **kwargs: Extra generation arguments.
 
         Returns:
@@ -32,12 +35,12 @@ class LLM:
         pass
 
     @classmethod
-    def from_task(cls, config_dir_or_id: str, *, env: Dict[str, str] = None) -> Any:
+    def from_task(cls, config_dir_or_id: str, *, env: Optional[Dict[str, str]] = None) -> Any:
         """Instantiate an LLM instance.
 
         Args:
-            config_dir_or_id: The local task directory or an id in the modelscope repository.
-            env: The extra environment variables except ones already been included
+            config_dir_or_id(`str`): The local task directory or id in the modelscope repository.
+            env(`Optional[Dict[str, str]]`): The extra environment variables except ones already been included
                 in the environment or in the `.env` file.
 
         Returns:
@@ -52,7 +55,7 @@ class LLM:
         """Instantiate an LLM instance.
 
         Args:
-            config: The omegaconf.DictConfig object.
+            config(`DictConfig`): The omegaconf.DictConfig object.
 
         Returns:
             The LLM instance.

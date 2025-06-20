@@ -1,8 +1,7 @@
-
+# Copyright (c) Alibaba, Inc. and its affiliates.
 import functools
 import time
-from copy import deepcopy
-from typing import Callable, TypeVar, Type, Union, Tuple, Any
+from typing import Callable, TypeVar, Type, Union, Tuple
 
 from .logger import get_logger
 
@@ -16,6 +15,7 @@ def retry(
         backoff_factor: float = 2.0,
         exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = Exception
 ):
+    """Retry doing something"""
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:

@@ -1,6 +1,6 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from omegaconf import DictConfig
 
-from modelscope_agent.utils.utils import assert_package_exist
 from modelscope_agent.llm.openai_llm import OpenAI
 
 

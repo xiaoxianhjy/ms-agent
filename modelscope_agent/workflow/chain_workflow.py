@@ -1,11 +1,12 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import Optional, Dict
+from typing import Optional, Dict, Type
 
 from omegaconf import DictConfig
 
 from modelscope_agent.config import Config
-from modelscope_agent.agent.base import Engine
-from modelscope_agent.workflow.base import Workflow
+from modelscope_agent.agent import Agent
+from .base import Workflow
 
 
 class ChainWorkflow(Workflow):
@@ -67,7 +68,7 @@ class ChainWorkflow(Workflow):
         config = None
         for task in self.workflow_chains:
             task_info = getattr(self.config, task)
-            engine_cls: Engine = self.find_engine(task_info.engine.name)
+            engine_cls: Type[Agent] = self.find_agent(task_info.engine.name)
             _cfg = getattr(task_info, 'config', config)
             init_args = getattr(task_info.engine, 'kwargs', {})
             if isinstance(_cfg, str):

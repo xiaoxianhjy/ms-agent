@@ -20,7 +20,6 @@ class HumanEvalCallback(Callback):
         super().__init__(config)
         self.human_eval_ended = False
         self.file_system = FileSystemTool(config)
-        self.output_dir = getattr(config, 'output_dir', 'output')
 
     async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
         await self.file_system.connect()
@@ -35,7 +34,7 @@ class HumanEvalCallback(Callback):
             self.human_eval_ended = True
             feedback = 'Everything is fine, task is end.'
         else:
-            all_local_files = '\n'.join(await self.file_system.list_files())
+            all_local_files = await self.file_system.list_files()
             feedback = f"""Here is the feedback from user: 
 
 {query}

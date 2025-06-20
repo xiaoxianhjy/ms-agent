@@ -1,18 +1,26 @@
+# Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Type
 
-from modelscope_agent.agent import SimpleEngine
-from modelscope_agent.agent.base import Engine
-from modelscope_agent.agent.code_engine import CodeEngine
+from modelscope_agent.agent import SimpleLLMAgent, Agent, CodeAgent
 
 
 class Workflow:
 
-    def find_engine(self, type: str) -> Optional[Engine]:
+    @staticmethod
+    def find_agent(type: str) -> Optional[Type[Agent]]:
+        """Find an agent by name
+
+        Args:
+            type(`str`): The type of agent to find
+
+        Returns:
+            The Agent class
+        """
         if type == 'SimpleEngine':
-            return SimpleEngine
+            return SimpleLLMAgent
         elif type == 'CodeEngine':
-            return CodeEngine
+            return CodeAgent
         return None
 
     @abstractmethod
