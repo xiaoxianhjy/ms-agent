@@ -35,16 +35,14 @@ prompt:
     Now begin:
 
 callbacks:
-  - artifact_callback
-  - arch_review_callback
-  - prompt_callback
+  - callbacks/artifact_callback
+  - callbacks/arch_review_callback
+  - callbacks/prompt_callback
 
-memory:
+handler: config_handler
 
 tools:
   split_task:
     mcp: false
-
-output_dir: output
 
 help: |

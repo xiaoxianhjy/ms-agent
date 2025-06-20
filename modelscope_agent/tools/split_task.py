@@ -50,10 +50,10 @@ class SplitTask(ToolBase):
     async def call_tool(self, server_name: str, *, tool_name: str,
                         tool_args: dict):
         """
-        1. SimpleLLMAgent will be used to start subtask
+        1. LLMAgent will be used to start subtask
         2. config will be inherited from the parent task
         """
-        from modelscope_agent.agent import SimpleLLMAgent
+        from modelscope_agent.agent import LLMAgent
         tasks = tool_args.get('tasks')
         sub_tasks = []
         for i, task in enumerate(tasks):
@@ -62,9 +62,9 @@ class SplitTask(ToolBase):
             config = DictConfig(self.config)
             config.prompt.system = system
             trust_remote_code = getattr(config, 'trust_remote_code', False)
-            engine = SimpleLLMAgent(
+            agent = LLMAgent(
                 config=config, trust_remote_code=trust_remote_code)
-            sub_tasks.append(engine.run(query, tag=f'workflow {i}'))
+            sub_tasks.append(agent.run(query, tag=f'workflow {i}'))
         result = await asyncio.gather(*sub_tasks)
         res = []
         for messages in result:

@@ -23,7 +23,7 @@ from .plan.utils import planer_mapping
 from .runtime import Runtime
 
 
-class SimpleLLMAgent(Agent):
+class LLMAgent(Agent):
     """Agent running for llm-based tasks.
 
     Args:
@@ -48,17 +48,19 @@ You are a robot assistant. You will be given many tools to help you complete tas
                  config: Optional[DictConfig] = None,
                  env: Optional[Dict[str, str]] = None,
                  **kwargs):
-        super().__init__(config_dir_or_id, config, env)
-        self.llm: LLM = LLM.from_config(self.config)
+        super().__init__(
+            config_dir_or_id,
+            config,
+            env,
+            tag=kwargs.get('tag'),
+            trust_remote_code=kwargs.get('trust_remote_code', False))
         self.callbacks: List[Callback] = []
-        self.runtime: Runtime = Runtime(llm=self.llm)
-        self.trust_remote_code = kwargs.get('trust_remote_code', False)
-        self.config.trust_remote_code = self.trust_remote_code
-        self._register_callback_from_config()
         self.tool_manager: Optional[ToolManager] = None
         self.memory_tools: List[Memory] = []
         self.planer: Optional[Planer] = None
         self.rag: Optional[Rag] = None
+        self.llm: Optional[LLM] = None
+        self.runtime: Optional[Runtime] = None
 
     def register_callback(self, callback: Callback):
         """Register a callback."""
@@ -227,6 +229,12 @@ You are a robot assistant. You will be given many tools to help you complete tas
         await self._loop_callback('after_tool_call', messages)
         return messages
 
+    def _prepare_llm(self):
+        self.llm: LLM = LLM.from_config(self.config)
+
+    def _prepare_runtime(self):
+        self.runtime: Runtime = Runtime(llm=self.llm)
+
     async def run(self, inputs, **kwargs) -> List[Message]:
         """Run the agent, mainly contains a llm calling and tool calling loop.
 
@@ -237,20 +245,22 @@ You are a robot assistant. You will be given many tools to help you complete tas
             The final messages
         """
         try:
+            self._register_callback_from_config()
+            self._prepare_llm()
+            self._prepare_runtime()
             await self._prepare_tools()
             await self._prepare_memory()
             await self._prepare_planer()
             await self._prepare_rag()
-            tag = kwargs.get('tag', Agent.DEFAULT_TAG)
-            self.runtime.tag = tag
+            self.runtime.tag = self.tag
             messages = await self._prepare_messages(inputs)
             await self._loop_callback('on_task_begin', messages)
             if self.planer:
                 messages = await self.planer.make_plan(messages, self.runtime)
             for message in messages:
-                self._log_output(message.content, tag=tag)
+                self._log_output(message.content, tag=self.tag)
             while not self.runtime.should_stop:
-                messages = await self._step(messages, tag)
+                messages = await self._step(messages, self.tag)
             await self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
             return messages

@@ -2,7 +2,7 @@
 from abc import abstractmethod
 from typing import Optional, Type
 
-from modelscope_agent.agent import Agent, CodeAgent, SimpleLLMAgent
+from modelscope_agent.agent import Agent, CodeAgent, LLMAgent
 
 
 class Workflow:
@@ -17,9 +17,9 @@ class Workflow:
         Returns:
             The Agent class
         """
-        if type == 'SimpleEngine':
-            return SimpleLLMAgent
-        elif type == 'CodeEngine':
+        if type == 'LLMAgent':
+            return LLMAgent
+        elif type == 'CodeAgent':
             return CodeAgent
         return None
 

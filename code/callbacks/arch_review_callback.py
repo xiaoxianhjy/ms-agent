@@ -44,6 +44,20 @@ Now Begin:
         self.arch_review_ended = False
         self.argue_round = 0
 
+    async def after_generate_response(self, runtime: Runtime,
+                                      messages: List[Message]):
+        # Review architecture with another evaluator here
+        if not self.is_default_workflow(runtime):
+            return
+
+        await self.do_arch_review(runtime, messages)
+
+    async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
+        if not self.is_default_workflow(runtime):
+            return
+        # When reviewing architecture, tool_calls is None, prevent the loop from ending.
+        runtime.should_stop = runtime.should_stop and self.arch_review_ended
+
     async def do_arch_review(self, runtime: Runtime, messages: List[Message]):
         if not self.arch_review_ended and len(messages) > 3:
             # Dump the previous review rounds, leave only the system, query and the last architect design
@@ -87,18 +101,3 @@ Now Begin:
             messages[-1].tool_calls = None
             messages.append(
                 Message(role='user', content=_response_message.content))
-
-    async def after_generate_response(self, runtime: Runtime,
-                                      messages: List[Message]):
-        if not self.is_default_workflow(runtime):
-            # Not work in subtasks
-            self.arch_review_ended = True
-            return
-
-        await self.do_arch_review(runtime, messages)
-
-    async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
-        if not self.is_default_workflow(runtime):
-            return
-        # When reviewing architecture, tool_calls is None, prevent the loop from ending.
-        runtime.should_stop = runtime.should_stop and self.arch_review_ended

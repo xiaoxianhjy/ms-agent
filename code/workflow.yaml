@@ -1,0 +1,31 @@
+coding:
+  next:
+    - code_review
+  config: agent.yaml
+  agent:
+    name: LLMAgent
+    kwargs:
+      tag: Architecture
+
+code_review:
+  next:
+    - refine
+  agent:
+    name: CodeAgent
+    kwargs:
+      code_file: code_review
+      tag: Reviewer
+
+refine:
+  next:
+    - human_eval
+  agent:
+    name: LLMAgent
+    kwargs:
+      tag: AutoRefiner
+
+human_eval:
+  agent:
+    name: LLMAgent
+    kwargs:
+      tag: HumanEvalRefiner

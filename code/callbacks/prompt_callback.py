@@ -1,10 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
+from code.coding.artifact_callback import ArtifactCallback
 from typing import List
 
 import json
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
-from modelscope_agent.cli.code.artifact_callback import ArtifactCallback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
 from omegaconf import DictConfig

@@ -1,4 +1,5 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
+from code.coding.artifact_callback import ArtifactCallback
 from copy import deepcopy
 from typing import Dict, List
 
@@ -9,8 +10,6 @@ from modelscope_agent.llm.llm import LLM
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.tools.split_task import SplitTask
-
-from .artifact_callback import ArtifactCallback
 
 
 class CodeReview(Code):

@@ -4,9 +4,12 @@ from typing import Dict, Optional, Type
 
 from modelscope_agent.agent import Agent
 from modelscope_agent.config import Config
+from modelscope_agent.utils import get_logger
 from omegaconf import DictConfig
 
 from .base import Workflow
+
+logger = get_logger()
 
 
 class ChainWorkflow(Workflow):
@@ -70,13 +73,19 @@ class ChainWorkflow(Workflow):
         config = None
         for task in self.workflow_chains:
             task_info = getattr(self.config, task)
-            engine_cls: Type[Agent] = self.find_agent(task_info.engine.name)
+            agent_cls: Type[Agent] = self.find_agent(task_info.agent.name)
             _cfg = getattr(task_info, 'config', config)
-            init_args = getattr(task_info.engine, 'kwargs', {})
+            init_args = getattr(task_info.agent, 'kwargs', {})
+            init_args.pop('trust_remote_code', None)
+            init_args['trust_remote_code'] = kwargs.get(
+                'trust_remote_code', False)
             if isinstance(_cfg, str):
-                engine = engine_cls(config_dir_or_id=_cfg, **init_args)
+                logger.info(
+                    f'Task {task} has its own config: {_cfg}, '
+                    f'the config from the previous task will be ignored.')
+                agent = agent_cls(config_dir_or_id=_cfg, **init_args)
             else:
-                engine = engine_cls(config=_cfg, **init_args)
-            inputs = await engine.run(inputs, **kwargs)
-            config = engine.config
+                agent = agent_cls(config=_cfg, **init_args)
+            inputs = await agent.run(inputs, **kwargs)
+            config = agent.prepare_config_for_next_step()
         return inputs

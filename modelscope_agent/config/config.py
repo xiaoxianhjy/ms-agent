@@ -1,6 +1,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import argparse
 import os.path
+from abc import abstractmethod
 from copy import deepcopy
 from typing import Any, Dict, Union
 
@@ -14,10 +15,42 @@ from .env import Env
 logger = get_logger()
 
 
+class ConfigLifecycleHandler:
+
+    def task_begin(self, config: DictConfig, tag: str) -> DictConfig:
+        """Modify config when the task begins.
+
+        Args:
+            config(`DictConfig`): The config instance
+            tag(`str`): The agent tag, you can handle multiple agents' config in one handler
+
+        Returns:
+            `DictConfig`: The modified config
+
+        """
+        pass
+
+    def task_end(self, config: DictConfig, tag: str) -> DictConfig:
+        """Modify config when the task ends, and config will be passed to the next agent in the workflow.
+
+        If the next agent has its own config, this function will have no effect.
+
+        Args:
+            config(`DictConfig`): The config instance
+            tag(`str`): The agent tag, you can handle multiple agents' config in one handler
+
+        Returns:
+            `DictConfig`: The modified config
+        """
+        pass
+
+
 class Config:
     """All tasks begin from a config"""
 
-    supported_config_names = ['config.yml', 'config.yaml']
+    supported_config_names = [
+        'workflow.yaml', 'workflow.yml', 'agent.yaml', 'agent.yml'
+    ]
 
     @classmethod
     def from_task(cls,
@@ -37,24 +70,32 @@ class Config:
             config_dir_or_id = snapshot_download(config_dir_or_id)
 
         config = None
+        name = None
         if os.path.isfile(config_dir_or_id):
             config = OmegaConf.load(config_dir_or_id)
             config_dir_or_id = os.path.dirname(config_dir_or_id)
         else:
-            for name in Config.supported_config_names:
-                config_file = os.path.join(config_dir_or_id, name)
+            for _name in Config.supported_config_names:
+                config_file = os.path.join(config_dir_or_id, _name)
                 if os.path.exists(config_file):
                     config = OmegaConf.load(config_file)
+                    name = _name
 
         assert config is not None, (
-            f'Cannot find any config file in {config_dir_or_id} named `config.json`, '
-            f'`config.yml` or `config.yaml`')
+            f'Cannot find any valid config file in {config_dir_or_id}, '
+            f'supported configs are: {Config.supported_config_names}')
         envs = Env.load_env(env)
         cls._update_config(config, envs)
         _dict_config = cls.parse_args()
         cls._update_config(config, _dict_config)
         config.local_dir = config_dir_or_id
+        config.name = name
         return config
+
+    @staticmethod
+    def is_workflow(config: DictConfig) -> bool:
+        assert config.name is not None, 'Cannot find a valid name in this config'
+        return config.name in ['workflow.yaml', 'workflow.yml']
 
     @staticmethod
     def parse_args() -> Dict[str, Any]:
