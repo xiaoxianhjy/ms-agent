@@ -21,7 +21,7 @@ class FileSystemTool(ToolBase):
         self.output_dir = getattr(file_system_config, 'output_dir', 'output')
 
     async def connect(self):
-        logger.warn(
+        logger.warning_once(
             '[IMPORTANT]FileSystemTool is not implemented with sandbox, please consider other similar '
             'tools if you want to run dangerous code.')
 

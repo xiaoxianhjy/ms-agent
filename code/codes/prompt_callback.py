@@ -57,6 +57,12 @@ Instructions for frontend design:
 * Implement a complete dark/light mode toggle functionality that follows system settings by default and allows users to manually switch.
 * Code structure should be clear and semantic, including appropriate comments.
 * Implement complete responsiveness that must display perfectly on all devices (mobile, tablet, desktop).
+
+Your code format example:
+
+<code>
+... your generated code here...
+</code>
 """ # noqa
 
     def __init__(self, config: DictConfig):

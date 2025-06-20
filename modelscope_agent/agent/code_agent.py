@@ -18,8 +18,11 @@ class CodeAgent(Agent):
                  config: Optional[DictConfig] = None,
                  env: Optional[Dict[str, str]] = None,
                  *,
-                 code_file: str):
-        super().__init__(config_dir_or_id, config, env)
+                 code_file: str,
+                 **kwargs):
+        super().__init__(config_dir_or_id, config, env,
+                         tag=kwargs.get('tag'),
+                         trust_remote_code=kwargs.get('trust_remote_code', False))
         self.code_file = code_file
 
     async def run(self, inputs, **kwargs):
@@ -31,16 +34,27 @@ class CodeAgent(Agent):
         Returns:
             The final messages
         """
-        base_path = os.path.dirname(self.code_file)
-        if sys.path[0] != base_path:
-            sys.path.insert(0, base_path)
-        code_module = importlib.import_module(self.code_file)
+        assert self.trust_remote_code, (
+            f'[External Code]A code file is required to run in the CodeAgent: {self.code_file}'
+            f'\nThis is external code, if you trust this code file, '
+            f'please specify `--trust_remote_code true`')
+        subdir = os.path.dirname(self.code_file)
+        code_file = os.path.basename(self.code_file)
+        local_dir = self.config.local_dir
+        assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
+        if subdir:
+            subdir = os.path.join(local_dir, subdir)
+        if local_dir not in sys.path:
+            sys.path.insert(0, local_dir)
+        if subdir and subdir not in sys.path:
+            sys.path.insert(0, subdir)
+        code_module = importlib.import_module(code_file)
         module_classes = {
             name: cls
             for name, cls in inspect.getmembers(code_module, inspect.isclass)
         }
         for name, cls in module_classes.items():
-            if cls.__bases__[0] is Code and cls.__module__ == self.code_file:
+            if cls.__bases__[0] is Code and cls.__module__ == code_file:
                 instance = cls(self.config)
                 messages = await instance.run(inputs, **kwargs)
                 return messages

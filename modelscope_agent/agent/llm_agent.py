@@ -76,7 +76,8 @@ You are a robot assistant. You will be given many tools to help you complete tas
             for _callback in callbacks:
                 subdir = os.path.dirname(_callback)
                 assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
-                subdir = os.path.join(local_dir, subdir)
+                if subdir:
+                    subdir = os.path.join(local_dir, subdir)
                 _callback = os.path.basename(_callback)
                 if _callback not in callbacks_mapping:
                     if not self.trust_remote_code:
@@ -87,7 +88,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                         )
                     if local_dir not in sys.path:
                         sys.path.insert(0, local_dir)
-                    if subdir not in sys.path:
+                    if subdir and subdir not in sys.path:
                         sys.path.insert(0, subdir)
                     callback_file = importlib.import_module(_callback)
                     module_classes = {
@@ -121,7 +122,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 tool_call_id=tool_call_query['id'],
                 name=tool_call_query['tool_name'])
             messages.append(_new_message)
-            logger.info(_new_message.content)
+            self._log_output(_new_message.content, self.tag)
         return messages
 
     async def _prepare_tools(self):
@@ -278,6 +279,6 @@ You are a robot assistant. You will be given many tools to help you complete tas
         except Exception as e:
             if hasattr(self.config, 'help'):
                 logger.error(
-                    f'Runtime error, please follow the instructions:\n\n {self.config.help}'
+                    f'[{self.tag}] Runtime error, please follow the instructions:\n\n {self.config.help}'
                 )
             raise e
