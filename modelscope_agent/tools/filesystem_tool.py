@@ -16,9 +16,12 @@ class FileSystemTool(ToolBase):
 
     def __init__(self, config):
         super(FileSystemTool, self).__init__(config)
-        file_system_config = config.tools.file_system
-        self._exclude_functions = getattr(file_system_config, 'exclude', [])
-        self.output_dir = getattr(file_system_config, 'output_dir', 'output')
+        file_system_config = getattr(config.tools, 'file_system', None)
+        if file_system_config is not None:
+            self._exclude_functions = getattr(file_system_config, 'exclude', [])
+        else:
+            self._exclude_functions = []
+        self.output_dir = getattr(config, 'output_dir', 'output')
 
     async def connect(self):
         logger.warning_once(

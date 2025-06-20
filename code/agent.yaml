@@ -139,6 +139,8 @@ prompt:
 
 handler: config_handler
 
+output_dir: output
+
 tools:
   split_task:
     mcp: false
