@@ -73,7 +73,7 @@ Now begin:
                     'the requirement of the sub code task may be error, try to regenerate the code architecture.'
                 )
             else:
-                code = self.file_system.read_file(output_file)
+                code = await self.file_system.read_file(output_file)
 
             review_query = (
                 f'The architect\'s original architectural design is:\n\n```\n{arch_design}```\n\n'

@@ -42,7 +42,7 @@ Your answer should be:
 {"task_type": "generate_code", "output": "js/index.js"}
 in json, do not add ``` or other explanations.
 
-If you find the task type is not generating code, you should return task_type: `other`, for example:
+If you find the task type is not generating code, you should return another task_type, for example:
 query is:
 You should analyze the code file: js/index.js, then find out the problems...
 
@@ -80,6 +80,14 @@ Your answer should be:
         last_message_content = last_message_content.replace(
             '```jsx\n', '<code>\n')
         last_message_content = last_message_content.replace(
+            '```ts\n', '<code>\n')
+        last_message_content = last_message_content.replace(
+            '```tsx\n', '<code>\n')
+        last_message_content = last_message_content.replace(
+            '```less\n', '<code>\n')
+        last_message_content = last_message_content.replace(
+            '```json\n', '<code>\n')
+        last_message_content = last_message_content.replace(
             '```java\n', '<code>\n')
         last_message_content = last_message_content.replace(
             '```javascript\n', '<code>\n')
@@ -95,12 +103,6 @@ Your answer should be:
     async def after_generate_response(self, runtime: Runtime,
                                       messages: List[Message]):
         if messages[-1].tool_calls:
-            return
-        metadata = self.extract_metadata(self.config, runtime.llm, messages)
-        metadata = json.loads(metadata)
-        code_file = metadata.get('output')
-        task_type = metadata.get('task_type')
-        if task_type != 'generate_code':
             return
         last_message_content = self.hot_fix_code_piece(messages[-1].content)
         messages[-1].content = last_message_content
@@ -123,6 +125,12 @@ Your answer should be:
                         code += message.content
             if code:
                 try:
+                    metadata = self.extract_metadata(self.config, runtime.llm, messages)
+                    metadata = json.loads(metadata)
+                    code_file = metadata.get('output')
+                    task_type = metadata.get('task_type')
+                    if task_type != 'generate_code':
+                        return
                     dirs = os.path.dirname(code_file)
                     await self.file_system.create_directory(dirs)
                     await self.file_system.write_file(code_file, code)
@@ -137,14 +145,14 @@ Your answer should be:
                 except Exception as e:
                     result = (
                         f'[Failed] Original query: {messages[1].content} '
-                        f'Task sunning failed with error {e} please consider retry generation.'
+                        f'Task sunning failed with error {e}.'
                     )
                     logger.error(result)
                     messages.append(Message(role='user', content=result))
             else:
                 result = (
                     f'[Failed] Original query: {messages[1].content} Task sunning failed, '
-                    f'code format error, please consider retry generation.')
+                    f'code format error.')
                 logger.error(result)
                 messages.append(Message(role='user', content=result))
             runtime.should_stop = True

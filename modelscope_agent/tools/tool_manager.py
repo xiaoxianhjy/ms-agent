@@ -61,14 +61,17 @@ class ToolManager:
         return [value[2] for value in self._tool_index.values()]
 
     async def single_call_tool(self, tool_info: Dict[str, Any]):
-        tool_name = tool_info['tool_name']
-        tool_args = tool_info['arguments']
-        if isinstance(tool_args, str):
-            tool_args = json.loads(tool_args)
-        assert tool_name in self._tool_index, 'Tool name not found'
-        tool_ins, server_name, _ = self._tool_index[tool_name]
-        return await tool_ins.call_tool(
-            server_name, tool_name=tool_name, tool_args=tool_args)
+        try:
+            tool_name = tool_info['tool_name']
+            tool_args = tool_info['arguments']
+            if isinstance(tool_args, str):
+                tool_args = json.loads(tool_args)
+            assert tool_name in self._tool_index, f'Tool name {tool_name} not found'
+            tool_ins, server_name, _ = self._tool_index[tool_name]
+            return await tool_ins.call_tool(
+                server_name, tool_name=tool_name, tool_args=tool_args)
+        except Exception as e:
+            return f'Tool calling failed: {str(e)}'
 
     async def parallel_call_tool(self, tool_list: List[Tuple[str, Dict[str,
                                                                        Any]]]):

@@ -1,8 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import json
 from typing import List
 
 from omegaconf import DictConfig
 
+from artifact_callback import ArtifactCallback
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm.utils import Message
@@ -69,11 +71,14 @@ Your code format example:
         super().__init__(config)
 
     async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
-        # metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm,
-        #                                              messages)
-        # metadata = json.loads(metadata)
-        # task_type = metadata.get('task_type')
-        # if task_type != 'generate_code':
-        #     return
-        assert messages[0].role == 'system'
-        messages[0].content = messages[0].content + self._prompt
+        try:
+            metadata = ArtifactCallback.extract_metadata(self.config, runtime.llm,
+                                                         messages)
+            metadata = json.loads(metadata)
+            task_type = metadata.get('task_type')
+            if task_type != 'generate_code':
+                return
+            assert messages[0].role == 'system'
+            messages[0].content = messages[0].content + self._prompt
+        except Exception:
+            pass

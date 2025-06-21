@@ -62,6 +62,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.rag: Optional[Rag] = None
         self.llm: Optional[LLM] = None
         self.runtime: Optional[Runtime] = None
+        self.round: int = 0
         self._task_begin()
 
     def register_callback(self, callback: Callback):
@@ -273,6 +274,12 @@ You are a robot assistant. You will be given many tools to help you complete tas
                 self._log_output(message.content, tag=self.tag)
             while not self.runtime.should_stop:
                 messages = await self._step(messages, self.tag)
+                self.round += 1
+                if self.round >= 20:
+                    if not self.runtime.should_stop:
+                        messages.append(Message(role='assistant', content='Task failed, max round(20) exceeded.'))
+                    self.runtime.should_stop = True
+                    break
             await self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
             return messages
