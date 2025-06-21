@@ -19,7 +19,7 @@ prompt:
     1. Analyze whether my requirements need tool-calling. If no tools are needed, you can think directly and provide an answer.
     2. I will give you many tools, some of which are similar. Please carefully analyze which tool you currently need to invoke.
        * If tools need to be invoked, you must call at least one tool in each round until the requirement is completed.
-       * MANDATORY: DO NOT assume you are able to give accurate coordinates/media links, so DO NOT use any fake positions/coordinates/information/locations/image links, always query them first.
+       * MANDATORY: DO NOT assume you are able to give accurate coordinates or links, so DO NOT use any fake positions/coordinates/information/locations/links, always query them first.
        * If you receive useful media links from tool calling, output them as well
     3. Don't ask any questions. Do your best to complete the assigned tasks well.
     4. If you need to complete coding tasks, you need to carefully analyze the original requirements, provide detailed requirement analysis, and then complete the code writing.
