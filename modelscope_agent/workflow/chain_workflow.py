@@ -26,6 +26,7 @@ class ChainWorkflow(Workflow):
         else:
             self.config = Config.from_task(config_dir_or_id, env)
         self.trust_remote_code = trust_remote_code or False
+        self.load_cache = kwargs.get('load_cache', True)
         self.workflow_chains = []
         self.build_workflow()
 
@@ -74,7 +75,15 @@ class ChainWorkflow(Workflow):
     @abstractmethod
     async def run(self, inputs, **kwargs):
         config = None
+        query = inputs
         for task in self.workflow_chains:
+            if self.load_cache:
+                _old_config, _old_message = self._read_history(query, task)
+                if _old_config is not None and _old_message is not None:
+                    config = _old_config
+                    inputs = _old_message
+                    continue
+
             task_info = getattr(self.config, task)
             agent_cls: Type[Agent] = self.find_agent(task_info.agent.name)
             _cfg = getattr(task_info, 'config', config)
@@ -91,4 +100,5 @@ class ChainWorkflow(Workflow):
                 agent = agent_cls(config=_cfg, **init_args)
             inputs = await agent.run(inputs, **kwargs)
             config = agent.prepare_config_for_next_step()
+            self._save_history(query, task, config, inputs)
         return inputs

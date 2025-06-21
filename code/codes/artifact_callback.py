@@ -37,16 +37,23 @@ Always remember your task is not generating the code, but parse the task type an
 Here shows an example:
 query is:
 You should write the js/index.js file, the file you need to use is main.css and js/nav.js, the interface in the code is ...
+or:
+You should update the js/index.js file...
+You should fix the ... file ...
 
-Your answer should be:
+All write/create/update/fix requests are counted as `generate_code`.
+
+Then your answer should be:
 {"task_type": "generate_code", "output": "js/index.js"}
 in json, do not add ``` or other explanations.
 
-If you find the task type is not generating code, you should return another task_type, for example:
+Else you should return another task_type, for example:
 query is:
 You should analyze the code file: js/index.js, then find out the problems...
 
-Your answer should be:
+This type of task want to analyze or check something.
+
+Then your answer should be:
 {"task_type": "analyze", "input": "js/index.js"}
 """ # noqa
         _query = (

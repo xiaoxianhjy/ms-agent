@@ -172,6 +172,8 @@ class FileSystemTool(ToolBase):
             path = os.path.join(self.output_dir, path)
         for root, dirs, files in os.walk(path):
             for file in files:
+                if '.' in file or '..' in file:
+                    continue
                 absolute_path = os.path.join(root, file)
                 relative_path = os.path.relpath(absolute_path, path)
                 file_paths.append(relative_path)
