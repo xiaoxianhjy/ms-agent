@@ -163,9 +163,9 @@ class OpenAI(LLM):
         message = None
         for chunk in completion:
             message_chunk = self._stream_format_output_message(chunk)
-            yield message_chunk
 
             message = self.merge_stream_message(message, message_chunk)
+            yield message
 
             if chunk.choices[0].finish_reason in ['length', 'null']:
                 print(

@@ -1,9 +1,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional
 
 import json
-from modelscope_agent.llm.utils import Tool
+from modelscope_agent.llm.utils import Tool, ToolCall
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.tools.mcp_client import MCPClient
@@ -60,7 +60,7 @@ class ToolManager:
     async def get_tools(self):
         return [value[2] for value in self._tool_index.values()]
 
-    async def single_call_tool(self, tool_info: Dict[str, Any]):
+    async def single_call_tool(self, tool_info: ToolCall):
         try:
             tool_name = tool_info['tool_name']
             tool_args = tool_info['arguments']
@@ -73,8 +73,7 @@ class ToolManager:
         except Exception as e:
             return f'Tool calling failed: {str(e)}'
 
-    async def parallel_call_tool(self, tool_list: List[Tuple[str, Dict[str,
-                                                                       Any]]]):
+    async def parallel_call_tool(self, tool_list: List[ToolCall]):
         tasks = [self.single_call_tool(tool) for tool in tool_list]
         result = await asyncio.gather(*tasks)
         return result

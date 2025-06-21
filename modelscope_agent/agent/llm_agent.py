@@ -78,7 +78,7 @@ class LLMAgent(Agent):
                 subdir = os.path.dirname(_callback)
                 assert local_dir is not None, 'Using external py files, but local_dir cannot be found.'
                 if subdir:
-                    subdir = os.path.join(local_dir, subdir)
+                    subdir = os.path.join(local_dir, str(subdir))
                 _callback = os.path.basename(_callback)
                 if _callback not in callbacks_mapping:
                     if not self.trust_remote_code:
@@ -191,13 +191,9 @@ class LLMAgent(Agent):
         return messages
 
     def _handle_stream_message(self, messages: List[Message],
-                               tools: List[Tool]) -> List[Message]:
-        message = None
-        for msg in self.llm.generate(messages, tools=tools):
-            yield msg
-            message = self.llm.merge_stream_message(message, msg)
-
-        return message
+                               tools: List[Tool]):
+        for message in self.llm.generate(messages, tools=tools):
+            yield message
 
     @staticmethod
     def _log_output(content: str, tag: str):
@@ -216,18 +212,22 @@ class LLMAgent(Agent):
         tools = await self.tool_manager.get_tools()
         if hasattr(self.config, 'generation_config') and getattr(
                 self.config.generation_config, 'stream', False):
-            _response_message = self._handle_stream_message(
-                messages, tools=tools)
+            self._log_output('[assistant]:', tag=tag)
+            _content = ''
+            for _response_message in self._handle_stream_message(messages, tools=tools):
+                new_content = _response_message.content[len(_content):]
+                sys.stdout.write(new_content)
+                sys.stdout.flush()
+                _content = _response_message.content
         else:
             _response_message = self.llm.generate(messages, tools=tools)
-
-        if _response_message.content:
-            self._log_output('[assistant]:', tag=tag)
-            self._log_output(_response_message.content, tag=tag)
+            if _response_message.content:
+                self._log_output('[assistant]:', tag=tag)
+                self._log_output(_response_message.content, tag=tag)
         if _response_message.tool_calls:
             self._log_output('[tool_calling]:', tag=tag)
             for tool_call in _response_message.tool_calls:
-                self._log_output(json.dumps(tool_call), tag=tag)
+                self._log_output(json.dumps(tool_call, ensure_ascii=False), tag=tag)
 
         if messages[-1] is not _response_message:
             messages.append(_response_message)
@@ -247,7 +247,7 @@ class LLMAgent(Agent):
     def _prepare_runtime(self):
         self.runtime: Runtime = Runtime(llm=self.llm)
 
-    async def run(self, inputs, **kwargs) -> List[Message]:
+    async def run(self, inputs: Union[List[Message], str], **kwargs) -> List[Message]:
         """Run the agent, mainly contains a llm calling and tool calling loop.
 
         Args:
@@ -270,7 +270,7 @@ class LLMAgent(Agent):
             messages = await self._prepare_messages(inputs)
             await self._loop_callback('on_task_begin', messages)
             if self.planer:
-                messages = await self.planer.make_plan(messages, self.runtime)
+                messages = await self.planer.make_plan(self.runtime, messages)
             for message in messages:
                 self._log_output('[' + message.role + ']:', tag=self.tag)
                 self._log_output(message.content, tag=self.tag)
