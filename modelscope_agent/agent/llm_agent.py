@@ -227,7 +227,10 @@ class LLMAgent(Agent):
         if _response_message.tool_calls:
             self._log_output('[tool_calling]:', tag=tag)
             for tool_call in _response_message.tool_calls:
-                self._log_output(json.dumps(tool_call, ensure_ascii=False), tag=tag)
+                tool_call = deepcopy(tool_call)
+                if isinstance(tool_call['arguments'], str):
+                    tool_call['arguments'] = json.loads(tool_call['arguments'])
+                self._log_output(json.dumps(tool_call, ensure_ascii=False, indent=4), tag=tag)
 
         if messages[-1] is not _response_message:
             messages.append(_response_message)

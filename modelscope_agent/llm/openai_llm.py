@@ -167,7 +167,7 @@ class OpenAI(LLM):
             message = self.merge_stream_message(message, message_chunk)
             yield message
 
-            if chunk.choices[0].finish_reason in ['length', 'null']:
+            if chunk.choices and chunk.choices[0].finish_reason in ['length', 'null']:
                 print(
                     f'finish_reason: {chunk.choices[0].finish_reason}， continue generate.'
                 )
@@ -179,20 +179,24 @@ class OpenAI(LLM):
 
     @staticmethod
     def _stream_format_output_message(completion_chunk) -> Message:
-        content = completion_chunk.choices[0].delta.content or ''
-        reasoning_content = completion_chunk.choices[
-            0].delta.reasoning_content or ''
         tool_calls = None
-        if completion_chunk.choices[0].delta.tool_calls:
-            func = completion_chunk.choices[0].delta.tool_calls
-            tool_calls = [
-                ToolCall(
-                    id=tool_call.id,
-                    index=tool_call.index,
-                    type=tool_call.type,
-                    arguments=tool_call.function.arguments,
-                    tool_name=tool_call.function.name) for tool_call in func
-            ]
+        reasoning_content = ''
+        content = ''
+        if completion_chunk.choices and completion_chunk.choices[0].delta:
+            content = completion_chunk.choices[0].delta.content
+            reasoning_content = getattr(completion_chunk.choices[0].delta, 'reasoning_content', '')
+            if completion_chunk.choices[0].delta.tool_calls:
+                func = completion_chunk.choices[0].delta.tool_calls
+                tool_calls = [
+                    ToolCall(
+                        id=tool_call.id,
+                        index=tool_call.index,
+                        type=tool_call.type,
+                        arguments=tool_call.function.arguments,
+                        tool_name=tool_call.function.name) for tool_call in func
+                ]
+        content = content or ''
+        reasoning_content = reasoning_content or ''
         return Message(
             role='assistant',
             content=content,

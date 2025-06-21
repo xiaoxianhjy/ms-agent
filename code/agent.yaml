@@ -1,6 +1,6 @@
 llm:
   service: openai
-  model: qwen-plus-latest
+  model: claude-3-7-sonnet-20250219
   openai_api_key:
   openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
@@ -8,9 +8,7 @@ generation_config:
   top_p: 0.6
   temperature: 0.2
   top_k: 20
-  max_completion_tokens: 8192
-  max_tokens: 16384
-  stream: false
+  stream: true
   extra_body:
     enable_thinking: false
 
@@ -28,15 +26,16 @@ prompt:
     5. Inform the subtasks to wrap the output code with <code></code>(DO NOT wrap with ```)
     6. Beauty and Functionality is the most important thing, never use invalid image links, use images from unsplash-like websites
     7. One task only writes one code file, organize the files in certain folders, and specify the `directory/filename` to the subtask
+      * Make sure you don't miss any file in your architectural design
     8. Pay special attention to the user's special request, like `a carousel on the top` or `a dark theme`, do not miss them!
     9. Retry the failed subtasks(If there are) with the same system and query
     10. DO NOT ask anything, finish the job as better as you can
     11. The preference language of the frontend is react
     12. DO NOT generate code yourself, you need to finish the architectural design work
-    13. You should use vite to build your frontend code
+    13. Use vite to build your frontend code
       * Generate vite.config.ts
       * vite.js needs a entrypoint `index.html`
-      * You should follow the file structure requirements of vite.js
+      * Follow the file structure requirements of vite.js
 
     Here is an example:
     
@@ -111,7 +110,7 @@ prompt:
     Let me provide the final tool arguments for implementing this Christmas e-commerce website:
 
     **Final Tool Args Example:**
-
+    Make sure each file in your architectural design would be implemented:
     ```json
     [
       {
