@@ -30,7 +30,8 @@ However, software architects have a high probability of making mistakes, here ar
     * The output file path in the query matches with the architecture design, especially the folder
     * The system field contains information of mentioning the subtask do not use invalid media links
     * The system or the query field contains information of the page language
-    * If it's a react project, whether package.json or other essential project files are considered
+    * Whether all the essential project files are considered
+        ** e.g. If it's a react project, files like package.json or vite.config.ts should be considered
 4. Some designs from the architect may be good, point out the good parts to encourage the architect to keep them!
 5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and generate a new PRD & architectual design and call `split_to_sub_task` again:`
 
