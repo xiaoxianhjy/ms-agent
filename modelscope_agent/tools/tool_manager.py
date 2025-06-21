@@ -1,6 +1,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 import json
 from modelscope_agent.llm.utils import Tool
@@ -14,9 +14,9 @@ class ToolManager:
     """Interacting with Agent class, hold all tools
     """
 
-    def __init__(self, config):
+    def __init__(self, config, mcp_config: Optional[Dict[str, Any]] = None):
         self.config = config
-        self.servers = MCPClient(config)
+        self.servers = MCPClient(config, mcp_config)
         self.extra_tools: List[ToolBase] = []
         self.has_split_task_tool = False
         if hasattr(config, 'tools') and hasattr(config.tools, 'split_task'):

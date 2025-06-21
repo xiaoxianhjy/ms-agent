@@ -73,6 +73,7 @@ class Config:
         name = None
         if os.path.isfile(config_dir_or_id):
             config = OmegaConf.load(config_dir_or_id)
+            name = os.path.basename(config_dir_or_id)
             config_dir_or_id = os.path.dirname(config_dir_or_id)
         else:
             for _name in Config.supported_config_names:

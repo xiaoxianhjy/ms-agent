@@ -9,12 +9,12 @@ def assert_package_exist(package, message: Optional[str] = None):
     assert importlib.util.find_spec(package), message
 
 
-def strtobool(val):
+def strtobool(val) -> bool:
     val = val.lower()
     if val in {'y', 'yes', 't', 'true', 'on', '1'}:
-        return 1
+        return True
     if val in {'n', 'no', 'f', 'false', 'off', '0'}:
-        return 0
+        return False
     raise ValueError(f'invalid truth value {val!r}')
 
 

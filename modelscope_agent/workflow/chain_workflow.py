@@ -27,6 +27,7 @@ class ChainWorkflow(Workflow):
             self.config = Config.from_task(config_dir_or_id, env)
         self.trust_remote_code = trust_remote_code or False
         self.load_cache = kwargs.get('load_cache', True)
+        self.mcp_server_file = kwargs.get('mcp_server_file', None)
         self.workflow_chains = []
         self.build_workflow()
 
@@ -90,6 +91,7 @@ class ChainWorkflow(Workflow):
             init_args = getattr(task_info.agent, 'kwargs', {})
             init_args.pop('trust_remote_code', None)
             init_args['trust_remote_code'] = self.trust_remote_code
+            init_args['mcp_server_file'] = self.mcp_server_file
             if isinstance(_cfg, str):
                 if config is not None:
                     logger.info(

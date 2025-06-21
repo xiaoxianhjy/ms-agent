@@ -4,7 +4,7 @@ import inspect
 import os.path
 import sys
 from copy import deepcopy
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import json
 from modelscope_agent.callbacks import Callback, callbacks_mapping
@@ -31,18 +31,10 @@ class LLMAgent(Agent):
         config_dir_or_id (`Optional[str]`): The directory or id of the config file.
         config (`Optional[DictConfig]`): The configuration object.
         env (`Optional[Dict[str, str]]`): The extra environment variables.
+        mcp_config(`Optional[Dict[str, Any]]`): The extra mcp config file location.
     """
 
-    DEFAULT_SYSTEM = """
-
-You are a robot assistant. You will be given many tools to help you complete tasks, and you need to use them to accomplish the tasks assigned to you.
-
-1. Carefully review the tool descriptions to ensure you call the correct tool and pass the correct parameters.
-2. You need to create a detailed task list at the beginning. If there are task management tools available, you should rely on them to store and update task progress to determine what needs to be done next.
-3. For complex tasks, you can break them down into subtasks. These subtasks will be executed separately by other robot assistants, who will return the results to you. Make sure to provide appropriate system instructions and queries for each subtask to ensure they can proceed normally.
-4. If you are assigned a task, ensure that the final information you return strictly follows the requirements in the system instructions and query. Do not end your task before it is completed. If there are task management tools, pay attention to the prompts they give you and strictly follow these prompts.
-5. You can call tools in parallel and ensure that you call tools in each round of dialogue before the task is completed.
-""" # noqa
+    DEFAULT_SYSTEM = 'You are a helpful assistant.'
 
     def __init__(self,
                  config_dir_or_id: Optional[str] = None,
@@ -63,11 +55,19 @@ You are a robot assistant. You will be given many tools to help you complete tas
         self.llm: Optional[LLM] = None
         self.runtime: Optional[Runtime] = None
         self.max_chat_round: int = 0
+        self.mcp_server_file = kwargs.get('mcp_server_file', None)
+        self.mcp_config: Dict[str, Any] = self._parse_mcp_servers()
         self._task_begin()
 
     def register_callback(self, callback: Callback):
         """Register a callback."""
         self.callbacks.append(callback)
+
+    def _parse_mcp_servers(self) -> Dict[str, Any]:
+        if self.mcp_server_file is not None and os.path.isfile(self.mcp_server_file):
+            with open(self.mcp_server_file, 'r') as f:
+                return json.load(f)
+        return {}
 
     def _register_callback_from_config(self):
         local_dir = self.config.local_dir if hasattr(self.config,
@@ -127,7 +127,7 @@ You are a robot assistant. You will be given many tools to help you complete tas
         return messages
 
     async def _prepare_tools(self):
-        self.tool_manager = ToolManager(self.config)
+        self.tool_manager = ToolManager(self.config, self.mcp_config)
         await self.tool_manager.connect()
 
     async def _cleanup_tools(self):

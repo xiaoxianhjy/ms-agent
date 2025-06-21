@@ -1,0 +1,34 @@
+llm:
+  service: modelscope
+  model: Qwen/Qwen3-235B-A22B
+  modelscope_api_key:
+  modelscope_base_url: https://api-inference.modelscope.cn/v1
+
+generation_config:
+  top_p: 0.6
+  temperature: 0.2
+  top_k: 20
+  stream: false
+  extra_body:
+    enable_thinking: false
+
+prompt:
+  system: |
+    You are an assistant that helps me complete tasks. You must complete my tasks, and you need follow these guidelines:
+
+    1. Analyze whether my requirements need tool-calling. If no tools are needed, you can think directly and provide an answer.
+    2. I will give you many tools, some of which are similar. Please carefully analyze which tool you currently need to invoke.
+       * If tools need to be invoked, you must call at least one tool in each round until the requirement is completed.
+       * If you are not sure about the exact information/location/keywords, try to use fuzzy search tools.
+    3. Don't ask any questions. Do your best to complete the assigned tasks well.
+    4. If you need to complete coding tasks, you need to carefully analyze the original requirements, provide detailed requirement analysis, and then complete the code writing.
+
+max_chat_round: 9999
+
+callbacks:
+  - input_callback
+
+tools:
+
+help: |
+  A commonly use config, try what ever you want!
