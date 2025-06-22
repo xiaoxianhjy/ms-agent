@@ -1,5 +1,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os
+from typing import Optional
+
+from omegaconf import DictConfig
 
 from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
@@ -16,7 +19,8 @@ class FileSystemTool(ToolBase):
 
     def __init__(self, config):
         super(FileSystemTool, self).__init__(config)
-        file_system_config = getattr(config.tools, 'file_system', None)
+        tools = getattr(config, 'tools', DictConfig({}))
+        file_system_config = getattr(tools, 'file_system', None)
         if file_system_config is not None:
             self._exclude_functions = getattr(file_system_config, 'exclude', [])
         else:
@@ -109,7 +113,7 @@ class FileSystemTool(ToolBase):
                         tool_args: dict) -> str:
         return await self.read_file(tool_args['path'])
 
-    async def create_directory(self, path: str) -> str:
+    async def create_directory(self, path: Optional[str] = None) -> str:
         """Create a directory
 
         Args:
@@ -119,10 +123,14 @@ class FileSystemTool(ToolBase):
             <OK> or error message.
         """
         try:
-            os.makedirs(os.path.join(self.output_dir, path), exist_ok=True)
-            return '<OK>'
+            if not path:
+                path = self.output_dir
+            else:
+                path = os.path.join(self.output_dir, path)
+            os.makedirs(path, exist_ok=True)
+            return f'Directory: <{path or "root path"}> was created.'
         except Exception as e:
-            return 'Create directory failed, error: ' + str(e)
+            return f'Create directory <{path or "root path"}> failed, error: ' + str(e)
 
     async def write_file(self, path: str, content: str):
         """Write content to a file.
@@ -135,11 +143,16 @@ class FileSystemTool(ToolBase):
             <OK> or error message.
         """
         try:
+            if not os.path.exists(self.output_dir):
+                os.makedirs(self.output_dir, exist_ok=True)
+            dirname = os.path.dirname(path)
+            if dirname:
+                os.makedirs(os.path.join(self.output_dir, dirname), exist_ok=True)
             with open(os.path.join(self.output_dir, path), 'w') as f:
                 f.write(content)
-            return '<OK>'
+            return f'Save file <{path}> successfully.'
         except Exception as e:
-            return 'Write file failed, error: ' + str(e)
+            return f'Write file <{path}> failed, error: ' + str(e)
 
     async def read_file(self, path: str):
         """Read the content of a file.
@@ -154,7 +167,7 @@ class FileSystemTool(ToolBase):
             with open(os.path.join(self.output_dir, path), 'r') as f:
                 return f.read()
         except Exception as e:
-            return 'Read file failed, error: ' + str(e)
+            return f'Read file <{path}> failed, error: ' + str(e)
 
     async def list_files(self, path: str = None):
         """List all files in a directory.
@@ -170,11 +183,14 @@ class FileSystemTool(ToolBase):
             path = self.output_dir
         else:
             path = os.path.join(self.output_dir, path)
-        for root, dirs, files in os.walk(path):
-            for file in files:
-                if '.' in file or '..' in file:
-                    continue
-                absolute_path = os.path.join(root, file)
-                relative_path = os.path.relpath(absolute_path, path)
-                file_paths.append(relative_path)
-        return '\n'.join(file_paths)
+        try:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if 'node_modules' in root or file.startswith('.'):
+                        continue
+                    absolute_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(absolute_path, path)
+                    file_paths.append(relative_path)
+            return '\n'.join(file_paths)
+        except Exception as e:
+            return f'List files of <{path or "root path"}> failed, error: ' + str(e)

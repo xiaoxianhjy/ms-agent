@@ -1,4 +1,4 @@
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from modelscope_agent.config.config import ConfigLifecycleHandler
 
@@ -11,15 +11,14 @@ class ConfigHandler(ConfigLifecycleHandler):
             config.callbacks = ['codes/arch_review_callback']
         elif tag == 'Reviewer':
             # no callbacks needed
-            config.callbacks = []
+            config.callbacks = ListConfig([])
         elif tag == 'AutoRefiner':
             # no callbacks needed
-            config.callbacks = []
+            config.callbacks = ListConfig([])
         elif tag == 'HumanEvalRefiner':
             config.callbacks = ['codes/human_eval_callback']
         elif 'worker' in tag:
-            config.callbacks = ['codes/artifact_callback', 'codes/prompt_callback']
-            delattr(config.tools, 'split_task')
+            config.callbacks = ['codes/artifact_callback']
             config.tools.file_system = DictConfig({'mcp': False,
                                                    'exclude': ['create_directory', 'write_file', 'list_files']})
         return config

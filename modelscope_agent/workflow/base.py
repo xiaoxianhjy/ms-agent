@@ -7,6 +7,7 @@ from typing import Optional, Type, List
 from omegaconf import OmegaConf, DictConfig
 
 from modelscope_agent.agent import Agent, CodeAgent, LLMAgent
+from modelscope_agent.config import Config
 from modelscope_agent.llm import Message
 from modelscope.hub.utils.utils import get_cache_dir
 
@@ -58,7 +59,8 @@ class Workflow:
         messages = None
         if os.path.exists(config_file):
             config = OmegaConf.load(config_file)
-        if os.path.exists(f'{task}.json'):
+            config = Config.fill_missing_fields(config)
+        if os.path.exists(message_file):
             with open(message_file, 'r') as f:
                 messages = json.load(f)
                 messages = [Message(**message) for message in messages]

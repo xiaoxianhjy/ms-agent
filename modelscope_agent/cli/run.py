@@ -43,5 +43,5 @@ if __name__ == '__main__':
                           trust_remote_code=args.trust_remote_code,
                           mcp_server_file=args.mcp_server_file)
 
-    query = input('>>>Please input the query:')
+    query = '做个简单的小网站试试手' # input('>>>Please input the query:')
     asyncio.run(engine.run(query))

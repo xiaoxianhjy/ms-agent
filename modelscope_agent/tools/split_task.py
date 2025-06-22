@@ -11,7 +11,10 @@ class SplitTask(ToolBase):
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
-        self.tag_prefix = getattr(config.tools.split_task, 'tag_prefix', 'worker-')
+        if hasattr(config, 'tools') and hasattr(config.tools, 'split_task'):
+            self.tag_prefix = getattr(config.tools.split_task, 'tag_prefix', 'worker-')
+        else:
+            self.tag_prefix = 'worker-'
         self.round = 0
 
     async def connect(self):
@@ -74,4 +77,7 @@ class SplitTask(ToolBase):
         for messages in result:
             res.append(messages[-1].content)
         self.round += 1
-        return '\n\n'.join(res)
+        result = ''
+        for i in range(len(res)):
+            result += f'SplitTask{i}:{res[i]}\n'
+        return result

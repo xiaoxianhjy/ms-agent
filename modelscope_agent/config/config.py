@@ -92,6 +92,15 @@ class Config:
         cls._update_config(config, _dict_config)
         config.local_dir = config_dir_or_id
         config.name = name
+        config = cls.fill_missing_fields(config)
+        return config
+
+    @staticmethod
+    def fill_missing_fields(config: DictConfig) -> DictConfig:
+        if not hasattr(config, 'tools') or config.tools is None:
+            config.tools = DictConfig({})
+        if not hasattr(config, 'callbacks') or config.callbacks is None:
+            config.callbacks = ListConfig([])
         return config
 
     @staticmethod
