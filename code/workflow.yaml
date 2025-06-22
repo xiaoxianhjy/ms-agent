@@ -1,21 +1,11 @@
-design:
+coding:
   next:
-    - coding
-  config: agent.yaml
+    - human_eval
+  config: js.yaml
   agent:
     name: LLMAgent
     kwargs:
       tag: Architecture
-
-coding:
-  next:
-    - human_eval
-  agent:
-    name: CodeAgent
-    kwargs:
-      code_file: codes/coding
-      tag: Coding
-
 
 human_eval:
   agent:

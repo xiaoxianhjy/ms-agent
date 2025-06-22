@@ -1,4 +1,5 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
+import json
 from typing import List
 
 from omegaconf import DictConfig

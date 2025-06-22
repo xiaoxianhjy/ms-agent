@@ -1,5 +1,4 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import sys
 from typing import List
 
 from modelscope_agent.agent import Runtime
@@ -19,23 +18,13 @@ class ArchReviewCallback(Callback):
 
 1. An original requirement is given
 2. A software architect provides the code architectural design and breaks down into different subtasks for completion
-    ```json:tasks.json
-    [
-      {
-        "system": "You are a senior frontend developer. You must follow instructions: ... instructions here ...",
-        "query": "Create package.json in root directory with project name 'christmas-ecommerce', create vite.config.ts in ..."
-      },
-      ... more subtasks here ...
-    ]
-    ```
-    Here is the format of starting tasks to implement the code,architect must output this to distribute tasks.
 3. After the subtasks are completed, they are automatically saved to disk, these modules will work together collaboratively
 
 However, software architects have a high probability of making mistakes, here are instructions:
 
 1. The architectural design should meet user requirements, especially the detailed requirements. Normal problems such as insufficient content richness, misunderstanding or insufficient details
 2. Dependencies and interface designs between modules MUST BE clear, reliable and sufficient for collaborative work
-3. Check the tasks.json:
+3. Check the arguments ot `split_to_sub_task`:
     * A system field and a query field must exist
     * The system and query contains sufficient information for subtasks to begin coding
     * The output files in the query must matches with the architecture design, especially the folder
@@ -43,7 +32,7 @@ However, software architects have a high probability of making mistakes, here ar
     * Whether all the essential project files are considered
         ** e.g. If it's a react project, files like package.json or vite.config.ts should be considered
 4. Some designs from the architect may be good, point out the good parts to encourage the architect to keep them!
-5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and generate a new PRD & architectual design and regenerate the tasks.json:`
+5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and generate a new PRD & architectual design and call `split_to_sub_task` again:`
 
 Carefully analyze the errors within, prompt the software architect to make corrections, if the plan already meets the requirements, output the <OK> character.
 Remember: You are not a software architect, you are an evaluator. You don't need to design architecture, you only need to point out or inspire awareness of the errors.
@@ -79,6 +68,7 @@ Now Begin:
         query = (
             f'The original requirement is: \n```text\n{messages[1].content}\n```\n\n '
             f'The plan and tasks given by the architect is: \n```text\n{messages[2].content}\n```\n\n '
+            f'The task arguments is : \n```json\n{messages[2].tool_calls[0]}\n```\n\n'
         )
 
         _messages = [
@@ -88,24 +78,35 @@ Now Begin:
         # Model chatting
         # if hasattr(self.config, 'generation_config') and getattr(
         #         self.config.generation_config, 'stream', False):
-        if False:
-            logger.info(f'[ArchReviewer] ')
-            _content = ''
-            for _response_message in runtime.llm.generate(messages):
-                new_content = _response_message.content[len(_content):]
-                sys.stdout.write(new_content)
-                sys.stdout.flush()
-                _content = _response_message.content
-        else:
-            _response_message = runtime.llm.generate(_messages, stream=False)
-            for line in _response_message.content.split('\n'):
-                for _line in line.split('\\n'):
-                    logger.info(f'[ArchReviewer] {_line}')
+        _response_message = runtime.llm.generate(_messages, stream=False)
+        for line in _response_message.content.split('\n'):
+            for _line in line.split('\\n'):
+                logger.info(f'[Reviewer] {_line}')
 
         self.argue_round += 1
 
         if '<OK>' in _response_message.content or self.arch_review_ended:
             self.arch_review_ended = True
         else:
+            # If something wrong, do no tool-calling, refine the design
+            review_content = _response_message.content
+            review_content += """
+**Tool Args Example:**
+
+```json
+[
+  {
+    "system": "You are a senior frontend developer. You must follow instructions: ... instructions here ...",
+    "query": "Create package.json in root directory with project name 'christmas-ecommerce', create vite.config.ts in ..."
+  },
+  {
+    "system": "You are a frontend developer. ...",
+    "query": "Create index.html, index.tsx ..."
+  },
+  ... more subtasks here ...
+]
+```
+"""
+            messages[-1].tool_calls = None
             messages.append(
-                Message(role='user', content=_response_message.content))
+                Message(role='user', content=review_content))

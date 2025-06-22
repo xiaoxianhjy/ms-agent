@@ -20,7 +20,13 @@ prompt:
 
     1. Consider what is the original requirement, does it involve frontend or backend code? What programming language is needed? 
     2. How many modules should it be split into? What functionalities are needed for each module? How to group each file?
-    3. You need to inform your subtasks that code blocks need to be wrapped with <code></code> tags(DO NOT wrap with ```), as this code will subsequently be stored in local files.
+    3. You need to inform your subtasks that code blocks need to be wrapped with ```html:index.html ...code here ... ```, as this code will subsequently be stored in local files.
+    
+    ```html:js/app.js
+    ...code here ... 
+    ```
+    Then app.js will be be used as the file name and js/ will be used as the folder.
+    
     4. You should **MENTION CLEARLY** the interface relations between each module/file, and tell single task to follow them. e.g., you must both tell the task of index.html to create a `nav` class, and tell the task of index.js to use `nav` class to communicate. 
     5. If the code contains http api interactions, you must clearly design the apis
     6. Beauty and Functionality is the most important thing, Never use invalid image links, use images from unsplash-like websites
@@ -38,7 +44,7 @@ prompt:
     1. An e-commerce website requires these modules: categories, goods, detail good, purchase, history orders, shopping cart, favourites, carousel images and so on.
     2. The website needs Christmas features, so the CSS style should be mainly red and white, decorated with Christmas images
     3. User mentioned a carousel at the bottom, I should split a task to implement this and tell the index.html task to import the component
-    4. I cannot complete this complex goal in a single file, so I need to split the tasks, and let subtasks wrap the final code with <code></code>
+    4. I cannot complete this complex goal in a single file, so I need to split the tasks, and let subtasks wrap the final code with ```html:index.html ...code here ... ```
     5. One task only writes one code file, I should organize the files in different folders, and give the relative output file path for the subtask
     6. I should give detail interfaces design of each task(especially the functions interact with other code files), file import relations
     7. I should tell the subtasks to use images from unsplash-like websites
@@ -84,7 +90,7 @@ prompt:
               You should follow instructions: 
               1. Do not give fake image addresses, use links of Unsplash like website  
               2. You should make the page as beautiful as you can 
-              3. DO not add ``` around the code, DO NOT give multiple segments of code, wrap the final code with <code></code>
+              3. DO not add ``` around the code, DO NOT give multiple segments of code, wrap the final code with ```html:index.html ...code here ... ```
               4. Link to js/purchase.js to fulfill the purchase section
               5. Link to js/goods.js to fulfill the goods section
               6. Link to carousel.html and put the carousel at the bottom of the page, ...
