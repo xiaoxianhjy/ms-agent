@@ -13,7 +13,7 @@ from modelscope_agent.llm.utils import Message, Tool
 from modelscope_agent.rag.base import Rag
 from modelscope_agent.rag.utils import rag_mapping
 from modelscope_agent.tools import ToolManager
-from modelscope_agent.utils.llm_utils import retry
+from modelscope_agent.utils import async_retry
 from modelscope_agent.utils.logger import logger
 from omegaconf import DictConfig
 
@@ -201,7 +201,7 @@ class LLMAgent(Agent):
             for _line in line.split('\\n'):
                 logger.info(f'[{tag}] {_line}')
 
-    @retry(max_attempts=2)
+    @async_retry(max_attempts=2)
     async def _step(self, messages: List[Message], tag: str) -> List[Message]:
         messages = deepcopy(messages)
         # Refine memory

@@ -1,7 +1,7 @@
 coding:
   next:
     - human_eval
-  config: js.yaml
+  config: agent.yaml
   agent:
     name: LLMAgent
     kwargs:
