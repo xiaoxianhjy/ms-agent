@@ -106,7 +106,6 @@ Now Begin:
   ... more subtasks here ...
 ]
 ```
-"""
+""" # noqa
             messages[-1].tool_calls = None
-            messages.append(
-                Message(role='user', content=review_content))
+            messages.append(Message(role='user', content=review_content))

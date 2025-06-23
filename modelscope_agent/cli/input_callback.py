@@ -1,12 +1,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from typing import List
 
-from omegaconf import DictConfig
-
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -20,7 +19,8 @@ class InputCallback(Callback):
 
     async def on_generate_response(self, runtime: Runtime,
                                    messages: List[Message]):
-        if messages[-1].tool_calls or messages[-1].role in ('tool', 'user'):  # noqa
+        if messages[-1].tool_calls or messages[-1].role in ('tool',
+                                                            'user'):  # noqa
             return
 
         query = input('>>>')

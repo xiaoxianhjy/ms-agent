@@ -1,17 +1,16 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import json
 import os
 from abc import abstractmethod
-from typing import Optional, Type, List
+from typing import List, Optional, Type
 
-from omegaconf import OmegaConf, DictConfig
-
+import json
 from modelscope_agent.agent import Agent, CodeAgent, LLMAgent
 from modelscope_agent.config import Config
 from modelscope_agent.llm import Message
-from modelscope.hub.utils.utils import get_cache_dir
-
 from modelscope_agent.utils.utils import str_to_md5
+from omegaconf import DictConfig, OmegaConf
+
+from modelscope.hub.utils.utils import get_cache_dir
 
 
 class Workflow:
@@ -40,7 +39,8 @@ class Workflow:
         pass
 
     @staticmethod
-    def _save_history(query: str, task: str, config: DictConfig, messages: List[Message]):
+    def _save_history(query: str, task: str, config: DictConfig,
+                      messages: List[Message]):
         folder = str_to_md5(query)
         os.makedirs(os.path.join(Workflow.cache_dir, folder), exist_ok=True)
         config_file = os.path.join(Workflow.cache_dir, folder, f'{task}.yaml')

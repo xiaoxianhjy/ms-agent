@@ -3,9 +3,9 @@ from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 
 from modelscope_agent.config import Config
-from .utils import Message
-from .utils import Tool
 from omegaconf import DictConfig
+
+from .utils import Message, Tool
 
 
 class LLM:

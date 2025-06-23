@@ -48,10 +48,10 @@ def retry(max_attempts: int = 3,
 
 
 def async_retry(max_attempts: int = 3,
-          delay: float = 1.0,
-          backoff_factor: float = 2.0,
-          exceptions: Union[Type[Exception], Tuple[Type[Exception],
-                                                   ...]] = Exception):
+                delay: float = 1.0,
+                backoff_factor: float = 2.0,
+                exceptions: Union[Type[Exception], Tuple[Type[Exception],
+                                                         ...]] = Exception):
     """Retry doing something"""
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:

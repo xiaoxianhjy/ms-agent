@@ -1,15 +1,14 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import json
 from typing import List
 
-from omegaconf import DictConfig
-
+import json
 from file_parser import extract_code_blocks
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -34,6 +33,8 @@ class ArtifactCallback(Callback):
         all_files, _ = extract_code_blocks(content)
         results = []
         for f in all_files:
-            results.append(await self.file_system.write_file(f['filename'], f['code']))
+            results.append(await
+                           self.file_system.write_file(f['filename'],
+                                                       f['code']))
         if len(all_files) > 0:
             messages.append(Message(role='user', content='\n'.join(results)))

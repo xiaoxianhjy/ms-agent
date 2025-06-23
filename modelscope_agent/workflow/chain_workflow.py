@@ -97,7 +97,9 @@ class ChainWorkflow(Workflow):
                     logger.info(
                         f'Task {task} has its own config: {_cfg}, '
                         f'the config from the previous task will be ignored.')
-                agent = agent_cls(config_dir_or_id=os.path.join(self.config.local_dir, _cfg), **init_args)
+                agent = agent_cls(
+                    config_dir_or_id=os.path.join(self.config.local_dir, _cfg),
+                    **init_args)
             else:
                 agent = agent_cls(config=_cfg, **init_args)
             inputs = await agent.run(inputs, **kwargs)

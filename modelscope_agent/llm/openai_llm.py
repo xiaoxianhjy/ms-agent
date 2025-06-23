@@ -167,7 +167,9 @@ class OpenAI(LLM):
             message = self.merge_stream_message(message, message_chunk)
             yield message
 
-            if chunk.choices and chunk.choices[0].finish_reason in ['length', 'null']:
+            if chunk.choices and chunk.choices[0].finish_reason in [
+                    'length', 'null'
+            ]:
                 print(
                     f'finish_reason: {chunk.choices[0].finish_reason}， continue generate.'
                 )
@@ -184,7 +186,8 @@ class OpenAI(LLM):
         content = ''
         if completion_chunk.choices and completion_chunk.choices[0].delta:
             content = completion_chunk.choices[0].delta.content
-            reasoning_content = getattr(completion_chunk.choices[0].delta, 'reasoning_content', '')
+            reasoning_content = getattr(completion_chunk.choices[0].delta,
+                                        'reasoning_content', '')
             if completion_chunk.choices[0].delta.tool_calls:
                 func = completion_chunk.choices[0].delta.tool_calls
                 tool_calls = [
@@ -193,7 +196,8 @@ class OpenAI(LLM):
                         index=tool_call.index,
                         type=tool_call.type,
                         arguments=tool_call.function.arguments,
-                        tool_name=tool_call.function.name) for tool_call in func
+                        tool_name=tool_call.function.name)
+                    for tool_call in func
                 ]
         content = content or ''
         reasoning_content = reasoning_content or ''
@@ -315,7 +319,6 @@ class OpenAI(LLM):
 
 if __name__ == '__main__':
     import os
-    from omegaconf import OmegaConf
 
     # 创建一个嵌套的字典结构
     conf: DictConfig = OmegaConf.create({

@@ -2,11 +2,10 @@
 import os
 from typing import Optional
 
-from omegaconf import DictConfig
-
 from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -22,7 +21,8 @@ class FileSystemTool(ToolBase):
         tools = getattr(config, 'tools', DictConfig({}))
         file_system_config = getattr(tools, 'file_system', None)
         if file_system_config is not None:
-            self._exclude_functions = getattr(file_system_config, 'exclude', [])
+            self._exclude_functions = getattr(file_system_config, 'exclude',
+                                              [])
         else:
             self._exclude_functions = []
         self.output_dir = getattr(config, 'output_dir', 'output')
@@ -130,7 +130,8 @@ class FileSystemTool(ToolBase):
             os.makedirs(path, exist_ok=True)
             return f'Directory: <{path or "root path"}> was created.'
         except Exception as e:
-            return f'Create directory <{path or "root path"}> failed, error: ' + str(e)
+            return f'Create directory <{path or "root path"}> failed, error: ' + str(
+                e)
 
     async def write_file(self, path: str, content: str):
         """Write content to a file.
@@ -147,7 +148,8 @@ class FileSystemTool(ToolBase):
                 os.makedirs(self.output_dir, exist_ok=True)
             dirname = os.path.dirname(path)
             if dirname:
-                os.makedirs(os.path.join(self.output_dir, dirname), exist_ok=True)
+                os.makedirs(
+                    os.path.join(self.output_dir, dirname), exist_ok=True)
             with open(os.path.join(self.output_dir, path), 'w') as f:
                 f.write(content)
             return f'Save file <{path}> successfully.'
@@ -193,4 +195,5 @@ class FileSystemTool(ToolBase):
                     file_paths.append(relative_path)
             return '\n'.join(file_paths)
         except Exception as e:
-            return f'List files of <{path or "root path"}> failed, error: ' + str(e)
+            return f'List files of <{path or "root path"}> failed, error: ' + str(
+                e)

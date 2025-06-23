@@ -12,7 +12,8 @@ class SplitTask(ToolBase):
     def __init__(self, config: DictConfig):
         super().__init__(config)
         if hasattr(config, 'tools') and hasattr(config.tools, 'split_task'):
-            self.tag_prefix = getattr(config.tools.split_task, 'tag_prefix', 'worker-')
+            self.tag_prefix = getattr(config.tools.split_task, 'tag_prefix',
+                                      'worker-')
         else:
             self.tag_prefix = 'worker-'
         self.round = 0

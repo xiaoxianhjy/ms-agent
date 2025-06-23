@@ -1,15 +1,14 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-import json
 from typing import List
 
-from omegaconf import DictConfig
-
+import json
 from file_parser import extract_code_blocks
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm.utils import Message
 from modelscope_agent.tools.filesystem_tool import FileSystemTool
 from modelscope_agent.utils import get_logger
+from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -68,7 +67,8 @@ class CodingCallback(Callback):
         await self.file_system.connect()
 
     async def on_tool_call(self, runtime: Runtime, messages: List[Message]):
-        if not messages[-1].tool_calls or messages[-1].tool_calls[0]['tool_name'] != 'split_to_sub_task':
+        if not messages[-1].tool_calls or messages[-1].tool_calls[0][
+                'tool_name'] != 'split_to_sub_task':
             return
         assert messages[0].role == 'system'
         arch_design = messages[2].content
@@ -79,17 +79,19 @@ class CodingCallback(Callback):
         if isinstance(tasks, str):
             tasks = json.loads(tasks)
         for task in tasks:
-            task['system'] = (f'{task['system']}\n\n'
-                             f'The architectural design is {arch_design}\n\n'
-                             f'The coding instruction of frontend: {self._frontend_prompt}\n\n'
-                             f'The files existing on the filesystem is: {files}\n\n'
-                             f'If you have code files to save, output your code with this format:\n\n'
-                             f'```js:index.js\n'
-                             f'... code ...\n'
-                             f'```\n'
-                             f'The `index.js` will be used to saving. '
-                             f'You only need to generate/fix/analyze the files listed in the query, '
-                             f'other modules will be handled in other tasks.\n'
-                             f'You need consider the interfaces between your and other modules according to the architectural design.\n\n'
-                             f'Now Begin:\n')
+            task['system'] = (
+                f'{task["system"]}\n\n'
+                f'The architectural design is {arch_design}\n\n'
+                f'The coding instruction of frontend: {self._frontend_prompt}\n\n'
+                f'The files existing on the filesystem is: {files}\n\n'
+                f'If you have code files to save, output your code with this format:\n\n'
+                f'```js:index.js\n'
+                f'... code ...\n'
+                f'```\n'
+                f'The `index.js` will be used to saving. '
+                f'You only need to generate/fix/analyze the files listed in the query, '
+                f'other modules will be handled in other tasks.\n'
+                f'You need consider the interfaces between your and other modules '
+                f'according to the architectural design.\n\n'
+                f'Now Begin:\n')
         messages[-1].tool_calls[0]['arguments'] = json.dumps({'tasks': tasks})

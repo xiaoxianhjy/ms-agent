@@ -4,7 +4,7 @@ import inspect
 import os.path
 import sys
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 import json
 from modelscope_agent.callbacks import Callback, callbacks_mapping
@@ -64,7 +64,8 @@ class LLMAgent(Agent):
         self.callbacks.append(callback)
 
     def _parse_mcp_servers(self) -> Dict[str, Any]:
-        if self.mcp_server_file is not None and os.path.isfile(self.mcp_server_file):
+        if self.mcp_server_file is not None and os.path.isfile(
+                self.mcp_server_file):
             with open(self.mcp_server_file, 'r') as f:
                 return json.load(f)
         return {}
@@ -99,8 +100,8 @@ class LLMAgent(Agent):
                     }
                     for name, cls in module_classes.items():
                         # Find cls which base class is `Callback`
-                        if cls.__bases__[
-                                0] is Callback and cls.__module__ == _callback:
+                        if issubclass(
+                                cls, Callback) and cls.__module__ == _callback:
                             self.callbacks.append(cls(self.config))
                 else:
                     self.callbacks.append(callbacks_mapping[_callback](
@@ -214,7 +215,8 @@ class LLMAgent(Agent):
                 self.config.generation_config, 'stream', False):
             self._log_output('[assistant]:', tag=tag)
             _content = ''
-            for _response_message in self._handle_stream_message(messages, tools=tools):
+            for _response_message in self._handle_stream_message(
+                    messages, tools=tools):
                 new_content = _response_message.content[len(_content):]
                 sys.stdout.write(new_content)
                 sys.stdout.flush()
@@ -230,7 +232,9 @@ class LLMAgent(Agent):
                 tool_call = deepcopy(tool_call)
                 if isinstance(tool_call['arguments'], str):
                     tool_call['arguments'] = json.loads(tool_call['arguments'])
-                self._log_output(json.dumps(tool_call, ensure_ascii=False, indent=4), tag=tag)
+                self._log_output(
+                    json.dumps(tool_call, ensure_ascii=False, indent=4),
+                    tag=tag)
 
         if messages[-1] is not _response_message:
             messages.append(_response_message)
@@ -250,7 +254,8 @@ class LLMAgent(Agent):
     def _prepare_runtime(self):
         self.runtime: Runtime = Runtime(llm=self.llm)
 
-    async def run(self, inputs: Union[List[Message], str], **kwargs) -> List[Message]:
+    async def run(self, inputs: Union[List[Message], str],
+                  **kwargs) -> List[Message]:
         """Run the agent, mainly contains a llm calling and tool calling loop.
 
         Args:
@@ -281,9 +286,13 @@ class LLMAgent(Agent):
                 messages = await self._step(messages, self.tag)
                 round += 1
                 # +1 means the next round the assistant may give a conclusion
-                if round >= self.max_chat_round+1:
+                if round >= self.max_chat_round + 1:
                     if not self.runtime.should_stop:
-                        messages.append(Message(role='assistant', content='Task failed, max round(20) exceeded.'))
+                        messages.append(
+                            Message(
+                                role='assistant',
+                                content='Task failed, max round(20) exceeded.')
+                        )
                     self.runtime.should_stop = True
                     break
             await self._loop_callback('on_task_end', messages)

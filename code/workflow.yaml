@@ -1,14 +1,14 @@
 coding:
   next:
-    - human_eval
+    - eval
   config: agent.yaml
   agent:
     name: LLMAgent
     kwargs:
       tag: Architecture
 
-human_eval:
+eval:
   agent:
     name: LLMAgent
     kwargs:
-      tag: HumanEvalRefiner
+      tag: Refiner

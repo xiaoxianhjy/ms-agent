@@ -20,9 +20,12 @@ class CodeAgent(Agent):
                  *,
                  code_file: str,
                  **kwargs):
-        super().__init__(config_dir_or_id, config, env,
-                         tag=kwargs.get('tag'),
-                         trust_remote_code=kwargs.get('trust_remote_code', False))
+        super().__init__(
+            config_dir_or_id,
+            config,
+            env,
+            tag=kwargs.get('tag'),
+            trust_remote_code=kwargs.get('trust_remote_code', False))
         self.code_file = code_file
 
     async def run(self, inputs, **kwargs):
