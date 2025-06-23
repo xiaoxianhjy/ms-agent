@@ -35,7 +35,7 @@ prompt:
       * DO NOT forget organize project files, like package.json(node.js), pom.xml(java) or setup.py(python)
       * 3~4 files in a group averagely
     4. Resources
-      * Beauty and Functionality is the most important thing,
+      * Beauty and Functionality is the most important thing
       * Use valid links as possible as you can, e.g., images from unsplash-like websites
     5. Code tasks
       * You must output your PRD and architectural design listed above, do not write code yourself

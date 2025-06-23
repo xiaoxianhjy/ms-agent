@@ -29,10 +29,8 @@ However, software architects have a high probability of making mistakes, here ar
     * The system and query contains sufficient information for subtasks to begin coding
     * The output files in the query must matches with the architecture design, especially the folder
     * The system or the query field contains information of the page language
-    * Whether all the essential project files are considered
-        ** e.g. If it's a react project, files like package.json or vite.config.ts should be considered
 4. Some designs from the architect may be good, point out the good parts to encourage the architect to keep them!
-5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and generate a new PRD & architectual design and call `split_to_sub_task` again:`
+5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and you must generate a new PRD & architectual design, then call `split_to_sub_task` again:`
 
 Carefully analyze the errors within, prompt the software architect to make corrections, if the plan already meets the requirements, output the <OK> character.
 Remember: You are not a software architect, you are an evaluator. You don't need to design architecture, you only need to point out or inspire awareness of the errors.
@@ -60,7 +58,7 @@ Now Begin:
             messages.clear()
             messages.extend(temp)
 
-        if self.argue_round >= 1:
+        if self.argue_round >= 1 and messages[2].content.strip():
             # Only one round
             self.arch_review_ended = True
             return

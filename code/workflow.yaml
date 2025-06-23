@@ -1,13 +1,13 @@
 coding:
   next:
-    - eval
-  config: agent.yaml
+    - refine
+  config: native.yaml
   agent:
     name: LLMAgent
     kwargs:
       tag: Architecture
 
-eval:
+refine:
   agent:
     name: LLMAgent
     kwargs:
