@@ -1,7 +1,6 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from typing import List
 
-import json
 from file_parser import extract_code_blocks
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback

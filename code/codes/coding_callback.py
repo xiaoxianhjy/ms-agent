@@ -2,7 +2,6 @@
 from typing import List
 
 import json
-from file_parser import extract_code_blocks
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
 from modelscope_agent.llm.utils import Message
@@ -14,7 +13,7 @@ logger = get_logger()
 
 
 class CodingCallback(Callback):
-    """Save the output code to local disk.
+    """Add more prompts when coding
     """
 
     _frontend_prompt = """* **Overall Style:** Consider magazine-style, publication-style, or other modern web design styles you deem appropriate. The goal is to create a page that is both informative and visually appealing, like a well-designed digital magazine or in-depth feature article.
@@ -79,6 +78,7 @@ class CodingCallback(Callback):
         if isinstance(tasks, str):
             tasks = json.loads(tasks)
         for task in tasks:
+            task['_system'] = task['system']
             task['system'] = (
                 f'{task["system"]}\n\n'
                 f'The architectural design is {arch_design}\n\n'
@@ -95,3 +95,18 @@ class CodingCallback(Callback):
                 f'according to the architectural design.\n\n'
                 f'Now Begin:\n')
         messages[-1].tool_calls[0]['arguments'] = json.dumps({'tasks': tasks})
+
+    async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
+        if not messages[-2].tool_calls or messages[-2].tool_calls[0][
+                'tool_name'] != 'split_to_sub_task':
+            return
+        assert messages[0].role == 'system'
+        arguments = messages[-2].tool_calls[0]['arguments']
+        arguments = json.loads(arguments)
+        tasks = arguments['tasks']
+        if isinstance(tasks, str):
+            tasks = json.loads(tasks)
+        for task in tasks:
+            task['system'] = task['_system']
+            task.pop('_system')
+        messages[-2].tool_calls[0]['arguments'] = json.dumps({'tasks': tasks})

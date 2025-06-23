@@ -63,6 +63,6 @@ if __name__ == '__main__':
             trust_remote_code=args.trust_remote_code,
             mcp_server_file=args.mcp_server_file)
 
-    query = ('写一个介绍故宫的中文网站，讲清故宫历史，朝代和文物，以及相关历史人物。在网站中嵌入一个订票网站，可以在'
-             '网站上直接预约故宫门票')  # input('>>>Please input the query:')
+    query = ('写一个介绍飞盘运动以及报名的网站，并且可以让用户注册报名飞盘活动，并且可以列举现在本市的飞盘活动列表，供用户选择'
+             )  # input('>>>Please input the query:')
     asyncio.run(engine.run(query))

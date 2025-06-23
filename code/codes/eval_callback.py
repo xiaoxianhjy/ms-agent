@@ -15,14 +15,14 @@ logger = get_logger()
 
 
 class EvalCallback(Callback):
-    """Eval the code by human input
+    """Eval the code by compiling and human eval.
     """
 
     def __init__(self, config: DictConfig):
         super().__init__(config)
         self.feedback_ended = False
         self.file_system = FileSystemTool(config)
-        self.compile_round = 10
+        self.compile_round = 20
         self.cur_round = 0
 
     async def on_task_begin(self, runtime: Runtime, messages: List[Message]):
@@ -106,7 +106,7 @@ You have called `split_to_sub_task` to generate this project, the call and respo
 
 Detect then conduct a complete report to identify which code file needs to be corrected and how to correct them.
 The instructions for problem checking and fixing:
-1. First call `split_to_sub_task` to start some subtasks to collect detailed problems from all the related files(Each task check only one file)
+1. First call `split_to_sub_task` to start some subtasks to collect detailed problems from all the related files
 
 An example of your query:
 
