@@ -92,7 +92,8 @@ class CodingCallback(Callback):
                 f'You only need to generate/fix/analyze the files listed in the query, '
                 f'other modules will be handled in other tasks.\n'
                 f'You need consider the interfaces between your and other modules '
-                f'according to the architectural design.\n\n'
+                f'according to the architectural design.\n\n '
+                f'Do not leave a blank image placeholder, you should use image links from unsplash\n\n'
                 f'Now Begin:\n')
         messages[-1].tool_calls[0]['arguments'] = json.dumps({'tasks': tasks})
 

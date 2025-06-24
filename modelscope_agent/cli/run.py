@@ -63,5 +63,6 @@ if __name__ == '__main__':
             trust_remote_code=args.trust_remote_code,
             mcp_server_file=args.mcp_server_file)
 
-    query = input('>>>Please input the query:')
+    query = ('编写一个健身打卡的网站，这个网站可以使用自己定义的用户名登记每天进行的运动，以及消耗的卡路里。'
+             '另外网站上对打卡登记的卡路里总量进行排名，有一个排行榜，可以使用localStorage来存储数据')  # input('>>>Please input the query:')
     asyncio.run(engine.run(query))
