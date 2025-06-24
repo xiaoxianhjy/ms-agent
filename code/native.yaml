@@ -1,16 +1,14 @@
 llm:
-  service: modelscope
-  model: Qwen/Qwen3-235B-A22B
-  modelscope_api_key:
-  modelscope_base_url: https://api-inference.modelscope.cn/v1
+  service: openai
+  model: qwen3-235b-a22b
+  openai_api_key:
+  openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
 generation_config:
   top_p: 0.6
   temperature: 0.2
   top_k: 20
-  max_completion_tokens: 8192
-  max_tokens: 16384
-  stream: false
+  stream: true
   extra_body:
     enable_thinking: false
 
@@ -38,10 +36,47 @@ prompt:
       * You must output your PRD and architectural design listed above, do not write code yourself
       * Retry the failed tasks
       * Use native html as possible as you can
-      * Use `split_to_sub_task` to distribute tasks
+      * MANDATORY: Call tool `split_to_sub_task` to distribute tasks
 
     After you output all your design, you need to call `split_to_sub_task` with arguments.
-
+    
+    For example:
+    The user requirement is: 
+    
+    ... original user requirements here ...
+    
+    To fulfill the user's requirement, these functionalities need to be implemented:
+    
+    ... functionalities here ...
+    
+    To implement these functionalities, I should design these modules:
+    
+    ... modules here ...
+    
+    So the file structure should be:
+    
+    ... draw a file structure here ...
+    
+    The import and interface relations between these files are:
+    
+    ... interface designs here ...
+    
+    At last, I can group these modules into groups, each module in one group considered to have a closer relation than others:
+    
+    Group1:
+    ... group1 files here ...
+    ... group1 reason here ...
+    
+    Group2:
+    ... group2 files here ...
+    ... group2 reason here ...
+    
+    ... other groups here ...
+    
+    Example end.
+    
+    You must call tool `split_to_sub_task` with the following args example:
+    
     **Final Tool Args Example:**
 
     ```json

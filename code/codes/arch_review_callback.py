@@ -22,15 +22,21 @@ class ArchReviewCallback(Callback):
 
 However, software architects have a high probability of making mistakes, here are instructions:
 
-1. The architectural design should meet user requirements, especially the detailed requirements. Normal problems such as insufficient content richness, misunderstanding or insufficient details
+1. The architectural design should meet user requirements, especially the detailed requirements. Normal problems such as:
+    * Directly calling tools, no design or plan at all
+    * Insufficient functionalities
+    * Misunderstanding of user's requirements
+    You need to point out these problems and make the architect fix them
 2. Dependencies and interface designs between modules MUST BE clear, reliable and sufficient for collaborative work
-3. Check the arguments ot `split_to_sub_task`:
-    * A system field and a query field must exist
+    You should pay attention to the interface design, if you think the interfaces between modules is not clear, make the architect fix them
+3. Check tool calling of `split_to_sub_task`:
+    * Whether split_to_sub_task is called
+    * A system field and a query field must exist for each subtask
     * The system and query contains sufficient information for subtasks to begin coding
     * The output files in the query must matches with the architecture design, especially the folder
     * The system or the query field contains information of the page language
 4. Some designs from the architect may be good, point out the good parts to encourage the architect to keep them!
-5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts and you must generate a new PRD & architectual design, then call `split_to_sub_task` again:`
+5. Your reply should be like `You should ...`, `Did you consider...`, or `Here is a problem which...`, at last you should say: `Now correct these problems and keep the good parts, you must fix and re-generate a more complete and detailed PRD & architectual design, then call `split_to_sub_task` again:`
 
 Carefully analyze the errors within, prompt the software architect to make corrections, if the plan already meets the requirements, output the <OK> character.
 Remember: You are not a software architect, you are an evaluator. You don't need to design architecture, you only need to point out or inspire awareness of the errors.
@@ -66,7 +72,7 @@ Now Begin:
         query = (
             f'The original requirement is: \n```text\n{messages[1].content}\n```\n\n '
             f'The plan and tasks given by the architect is: \n```text\n{messages[2].content}\n```\n\n '
-            f'The task arguments is : \n```json\n{messages[2].tool_calls[0]}\n```\n\n'
+            f'The task arguments is : \n```json\n{messages[2].tool_calls[0] if messages[2].tool_calls else "Tool not called."}\n```\n\n'
         )
 
         _messages = [
