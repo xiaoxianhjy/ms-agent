@@ -77,23 +77,48 @@ class EvalCallback(Callback):
         return input('>>> Feedback:')
 
     async def do_arch_update(self, runtime: Runtime, messages: List[Message], updated_arch: str):
-        query = (
-            f'The original requirement is: \n```text\n{messages[1].content}\n```\n\n '
-            f'The plan and tasks given by the architect is: \n```text\n{messages[2].content}\n```\n\n '
-            f'The task arguments is : \n```json\n{messages[2].tool_calls[0] if messages[2].tool_calls else "Tool not called."}\n```\n\n'
-        )
+        _arch_update_system = """You are an assistant that helps architect maintain and update PRDs & code architectures. The architect's workflow is:
+
+1. Design PRD & architecture based on original requirements
+2. Allocate tasks to complete requirements according to PRD & code architecture
+3. Fix bugs or add new requirements based on user feedback
+
+However, when fixing bugs or adding new requirements, it may involve the updating the PRD & code architecture. 
+Next, I will provide you with the original design and the parts that need to be updated. You need to help me merge these two parts into a complete design.
+
+Your instructions to follow:
+1. Accurately assess which parts of the original design need to be modified&merged based on the updates, and carefully merge them without missing any information
+2. Avoid making the PRD & code architecture increasingly lengthy after merging - you need to avoid redundant information
+3. Your output format should be:
+
+```text:design.txt
+... your merged and refined architectural design here ...
+```
+
+Now let's begin:
+"""
+        query = (f'The system of the architect is: \n\n'
+                 f'{messages[0].content}\n\n'
+                 f'The original query is :\n\n'
+                 f'{messages[1].content}\n\n'
+                 f'The original PRD & architectural design is :\n\n'
+                 f'{messages[2].content}\n\n'
+                 f'The updated part of PRD & architectural design is:\n\n'
+                 f'{updated_arch}\n\n'
+                 f'Now merge the 2 parts of PRD & architectural design:\n')
 
         _messages = [
-            Message(role='system', content=self._arch_review_system),
+            Message(role='system', content=_arch_update_system),
             Message(role='user', content=query),
         ]
-        # Model chatting
-        # if hasattr(self.config, 'generation_config') and getattr(
-        #         self.config.generation_config, 'stream', False):
         _response_message = runtime.llm.generate(_messages, stream=False)
         for line in _response_message.content.split('\n'):
             for _line in line.split('\\n'):
-                logger.info(f'[Reviewer] {_line}')
+                logger.info(f'[Arch Updater] {_line}')
+
+        front, design = _response_message.content.split('```text:design.txt', maxsplit=1)
+        design, end = design.rsplit('```', 1)
+        return design
 
     async def on_generate_response(self, runtime: Runtime,
                                    messages: List[Message]):
@@ -163,8 +188,10 @@ After updating, you do not need to verify, the latest feedback will be given to 
         if len(design) > 0:
             front, design = messages[-1].content.split('```text:design.txt', maxsplit=1)
             design, end = design.rsplit('```', 1)
-            messages[2].content = design
-            messages[-1].content = front + '\n\n' + end
+            messages[2].content = await self.do_arch_update(runtime=runtime,
+                                                            messages=messages,
+                                                            updated_arch=design)
+
 
     async def after_tool_call(self, runtime: Runtime, messages: List[Message]):
         runtime.should_stop = runtime.should_stop and self.feedback_ended
