@@ -122,6 +122,8 @@ An example of your query:
 The problem is ..., you need to fix ... file and ... file, read the existing code file first, then do a minimum change to prevent the damages to the functionalities which work normally.
 ```
 
+You need to remind the subtask do a minimum change in case that the normal code is damaged.
+
 After fixing, you do not need to verify, the latest feedback will be given to you.
 """ # noqa
         messages.append(Message(role='user', content=feedback))

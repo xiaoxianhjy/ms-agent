@@ -10,7 +10,7 @@ class ConfigHandler(ConfigLifecycleHandler):
             if '235' in config.llm.model:
                 # 235B model works better with an arch review
                 config.callbacks = [
-                    'codes/arch_review_callback', 'codes/coding_callback'
+                    'codes/coding_callback'
                 ]
             else:
                 config.callbacks = ['codes/coding_callback']

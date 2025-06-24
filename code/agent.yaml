@@ -67,7 +67,7 @@ prompt:
 
     * Give a clear system and query prompt to guide the single task
     * If the task need to generate code files, describe the module requirements clearly
-    * If the task need to fix code files, describe the problems to fix, mention the task to keep the good parts
+    * If the task need to fix code files, describe the problems to fix, remind the task to keep the good parts
     * If the task need to check or analyze code implementations, describe the detailed check list clearly
 
     Now Begin:

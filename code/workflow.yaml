@@ -1,7 +1,7 @@
 coding:
   next:
     - refine
-  config: native.yaml
+  config: agent.yaml
   agent:
     name: LLMAgent
     kwargs:

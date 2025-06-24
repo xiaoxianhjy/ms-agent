@@ -291,7 +291,7 @@ class LLMAgent(Agent):
                         messages.append(
                             Message(
                                 role='assistant',
-                                content='Task failed, max round(20) exceeded.')
+                                content=f'Task {messages[1].content} failed, max round(20) exceeded.')
                         )
                     self.runtime.should_stop = True
                     break

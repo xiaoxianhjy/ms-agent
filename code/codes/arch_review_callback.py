@@ -28,7 +28,8 @@ However, software architects have a high probability of making mistakes, here ar
     * Misunderstanding of user's requirements
     You need to point out these problems and make the architect fix them
 2. Dependencies and interface designs between modules MUST BE clear, reliable and sufficient for collaborative work
-    You should pay attention to the interface design, if you think the interfaces between modules is not clear, make the architect fix them
+    * You should pay attention to the interface design, if you think the interfaces between modules is not clear, make the architect fix them
+    * The coding language is native html and javascript
 3. Check tool calling of `split_to_sub_task`:
     * Whether split_to_sub_task is called
     * A system field and a query field must exist for each subtask
