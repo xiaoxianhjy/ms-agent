@@ -2,7 +2,7 @@
 import os
 import subprocess
 from contextlib import contextmanager
-from typing import List
+from typing import List, Optional
 
 from modelscope_agent.agent.runtime import Runtime
 from modelscope_agent.callbacks import Callback
@@ -38,9 +38,11 @@ class EvalCallback(Callback):
         messages.extend(tmp)
 
     @contextmanager
-    def chdir_context(self):
+    def chdir_context(self, folder: Optional[str] = None):
         path = os.getcwd()
         work_dir = getattr(self.config, 'output_dir', 'output')
+        if folder is not None:
+            work_dir = os.path.join(work_dir, folder)
         if not path.endswith(work_dir):
             os.chdir(work_dir)
             yield
@@ -68,8 +70,8 @@ class EvalCallback(Callback):
                 return output
         return ''
 
-    def get_compile_feedback(self):
-        with self.chdir_context():
+    def get_compile_feedback(self, folder: Optional[str] = None):
+        with self.chdir_context(folder):
             return self._run_compile()
 
     def get_human_feedback(self):
@@ -133,8 +135,10 @@ Now let's begin:
         self.omit_intermediate_messages(messages)
         query = None
         if self.config.name == 'agent.yaml':
-            # agent.yaml mainly for react
-            query = self.get_compile_feedback().strip()
+            # agent.yaml mainly for react and node.js
+            query = self.get_compile_feedback('frontend').strip()
+            if not query:
+                query = self.get_compile_feedback('backend').strip()
         if not query:
             query = self.get_human_feedback().strip()
         if not query:
@@ -189,7 +193,7 @@ An example of your query:
 The problem/feature is ..., you need to fix/implement ... file and ... file, read the existing code file first, then do a minimum change to prevent the damages to the functionalities which work normally.
 ```
 
-After updating, you do not need to verify, the latest feedback will be given to you.
+After updating, you do not need to verify or run `npm install/build`, the build/user feedback will be given to you automatically.
 """ # noqa
         messages.append(Message(role='user', content=feedback))
 

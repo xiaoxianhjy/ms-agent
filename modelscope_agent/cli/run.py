@@ -64,6 +64,6 @@ if __name__ == '__main__':
             load_cache=args.load_cache,
             mcp_server_file=args.mcp_server_file)
 
-    query = ('编写一个健身打卡的网站，这个网站可以使用自己定义的用户名登记每天进行的运动，以及消耗的卡路里。'
-             '另外网站上对打卡登记的卡路里总量进行排名，有一个排行榜，可以使用localStorage来存储数据')  # input('>>>Please input the query:')
+    query = ('编写一个专门售卖圣诞礼物品类的电商为网站，包含前后端，前端的商品、用户等都使用后端ajax接口实现。'
+             '后端使用node.js，且不需要连接中间件，使用json文件作为数据库即可')  # input('>>>Please input the query:')
     asyncio.run(engine.run(query))

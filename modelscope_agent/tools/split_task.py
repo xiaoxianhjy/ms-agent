@@ -5,6 +5,8 @@ from modelscope_agent.llm.utils import Tool
 from modelscope_agent.tools.base import ToolBase
 from omegaconf import DictConfig
 
+from modelscope_agent.utils.utils import escape_yaml_string
+
 
 class SplitTask(ToolBase):
     """A tool special for task splitting"""
@@ -66,7 +68,7 @@ class SplitTask(ToolBase):
             system = task['system']
             query = task['query']
             config = DictConfig(self.config)
-            config.prompt.system = system
+            config.prompt.system = escape_yaml_string(system)
             trust_remote_code = getattr(config, 'trust_remote_code', False)
             agent = LLMAgent(
                 config=config,

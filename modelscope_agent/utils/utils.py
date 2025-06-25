@@ -29,6 +29,13 @@ def str_to_md5(text: str) -> str:
     return md5_hash.hexdigest()
 
 
+def escape_yaml_string(text: str) -> str:
+    text = text.replace('\\', '\\\\')
+    text = text.replace('$', '\\$')
+    text = text.replace('"', '\\"')
+    return text
+
+
 def save_history(query: str, task: str, config: DictConfig,
                   messages: List['Message']):
     cache_dir = os.path.join(get_cache_dir(), 'workflow_cache')

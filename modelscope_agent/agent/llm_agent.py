@@ -308,7 +308,7 @@ class LLMAgent(Agent):
             await self._prepare_planer()
             await self._prepare_rag()
             self.runtime.tag = self.tag
-
+            
             self.config, self.runtime, messages = self._read_history(messages, **kwargs)
 
             if self.runtime.round == 0:
@@ -330,7 +330,7 @@ class LLMAgent(Agent):
                         messages.append(
                             Message(
                                 role='assistant',
-                                content=f'Task {messages[1].content} failed, max round(20) exceeded.')
+                                content=f'Task {messages[1].content} failed, max round({self.max_chat_round}) exceeded.')
                         )
                     self.runtime.should_stop = True
                 # save history
