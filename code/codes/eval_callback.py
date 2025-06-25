@@ -50,9 +50,8 @@ class EvalCallback(Callback):
         else:
             yield
 
-    def check_install(self):
-        if self.cur_round >= self.compile_round:
-            return ''
+    @staticmethod
+    def check_install():
         try:
             result = subprocess.run(
                 ['npm', 'install'], capture_output=True, text=True, check=True)
@@ -62,15 +61,16 @@ class EvalCallback(Callback):
             output = result.stdout + '\n' + result.stderr
         return output
 
-    def check_runtime(self):
-        if self.cur_round >= self.compile_round:
-            return ''
+    @staticmethod
+    def check_runtime():
         try:
+            os.system('pkill -f node')
             result = subprocess.run(
                 ['npm', 'run', 'dev'],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=5,
+                stdin=subprocess.DEVNULL
             )
         except subprocess.CalledProcessError as e:
             output = (e.stdout.decode('utf-8') if e.stdout else '') + '\n' + (e.stderr.decode('utf-8') if e.stderr else '')
@@ -78,16 +78,17 @@ class EvalCallback(Callback):
             output = (e.stdout.decode('utf-8') if e.stdout else '') + '\n' + (e.stderr.decode('utf-8') if e.stderr else '')
         else:
             output = result.stdout + '\n' + result.stderr
+        os.system('pkill -f node')
         return output
 
     def _run_compile(self):
         if self.cur_round >= self.compile_round:
             return ''
-        commands = [self.check_install, self.check_runtime]
-        for cmd in commands:
-            output = cmd()
+        checks = [self.check_install, self.check_runtime]
+        for check in checks:
+            output = check()
             if 'failed' not in output.lower() and 'error' not in output.lower(
-            ):
+            ) or 'address already in use' in output.lower():
                 pass
             else:
                 self.cur_round += 1
@@ -150,6 +151,26 @@ Now let's begin:
         design, end = design.rsplit('```', 1)
         return design
 
+    async def is_feature(self, runtime: Runtime, query: str) -> bool:
+        _classify_system = """You are an assistant help me to identify whether a feedback is an issue or a new feature.
+
+You need to follow these instructions:
+1. Only return as an issue when it's a pure bug. If the feedback contains any new feature requirements, define it as a feature.
+2. Return only `issue` or `feature`, do not return anything else.
+
+Now begin:
+"""
+        _messages = [
+            Message(role='system', content=_classify_system),
+            Message(role='user', content=query),
+        ]
+        _response_message = runtime.llm.generate(_messages, stream=False)
+        for line in _response_message.content.split('\n'):
+            for _line in line.split('\\n'):
+                logger.info(f'[Arch Updater] {_line}')
+
+        return 'feature' in _response_message.content.lower()
+
     async def on_generate_response(self, runtime: Runtime,
                                    messages: List[Message]):
         if messages[-1].tool_calls or messages[-1].role == 'tool':  # noqa
@@ -176,21 +197,23 @@ Now let's begin:
                 'The project runs Ok, you do not need to do any check of fix.')
         else:
             all_local_files = await self.file_system.list_files()
-
+            is_feature = False
             if human_feedback:
-                step2 = """Step 2. You may update your architectural design carefully which is already in your history when:
+                is_feature = await self.is_feature(runtime, query)
+            if is_feature:
+                step2 = """Step 2. Update your history architectural.
 
-* ONLY update the design if the feedback is a new feature
+For example:
 
-... your thinking here ...
+//Place your thinking, fix implementations here
+To fix this bug, the ... module need to add ... fix ... replace ...
 
 ```text:design.txt
-... your detailed modules, functionalities, interfaces or files here ...
+//Only place the actual changes of architecture here, you only need to output the **changed** parts, and mark clearly how to update.
+1. Add Route ...
+2. Add new files ...
+3. User interface changed to ...
 ```
-
-You only need to output the **changed** parts, and mark clearly how to update.
-
-* DO NOT update the design if the feedback is an issue
 
 After output design.txt, call `split_to_sub_task` again to correct the abnormal files or implement the new features.
 """
@@ -203,9 +226,11 @@ After output design.txt, call `split_to_sub_task` again to correct the abnormal 
 
 {query}
 
-You have called `split_to_sub_task` to generate this project, the call and response of `split_to_sub_task` messages are omitted, the generated files existing on the filesystem are:
+You have called `split_to_sub_task` to generate this project, the call and response of `split_to_sub_task` messages are omitted, the actual generated files existing on the filesystem are:
 
 {all_local_files}
+
+These files may be not matched with your PRD & design, consider the actual files first.
 
 Detect then conduct a complete report to identify which code file needs to be corrected and how to correct them.
 The instructions for problem checking and fixing:
@@ -216,6 +241,8 @@ An example of your query:
 ```
 You are a subtask to collect information for me, the user feedback is ..., you need to read the ... file and find the root cause, remember you are a evaluator, not a programmer, do not write code, just collect information.
 ```
+
+You need to consider both the frontend and backend files, some error happens because the http interfaces are not matched between them.
 
 {step2}
 

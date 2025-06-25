@@ -188,7 +188,7 @@ class FileSystemTool(ToolBase):
         try:
             for root, dirs, files in os.walk(path):
                 for file in files:
-                    if 'node_modules' in root or file.startswith('.'):
+                    if 'node_modules' in root or 'dist' in root or file.startswith('.'):
                         continue
                     absolute_path = os.path.join(root, file)
                     relative_path = os.path.relpath(absolute_path, path)

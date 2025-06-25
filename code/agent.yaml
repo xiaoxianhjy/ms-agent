@@ -29,11 +29,12 @@ prompt:
       * The data flow
       * Module/Class definition
       * Functions, interfaces and imports between modules to make them work together
+      * The http interfaces and detailed data structures between frontend and backend
       * Put your all frontend code in the frontend folder, put your all backend code in the backend folder, use node.js as your backend language
       * Consider: If your design is split and implemented with separate tasks, will there be issues with coordination between the code modules, such as how different modules call each other, the timing of calls, and the parameters for calls?
     3. Organize your sub-modules into groups, each group will be implemented in one task
-      * For example, frontend/goods.jsx,frontend/details.jsx can be grouped, because they work together, group them to reduce mistakes
-      * DO NOT forget organize project files, like frontend/package.json(node.js), backend/pom.xml(java) or backend/setup.py(python)
+      * For example, goods.jsx,details.jsx can be grouped, because they work together, group them to reduce mistakes
+      * DO NOT forget organize project files, like package.json(node.js), pom.xml(java) or setup.py(python)
       * 3~4 files in a group averagely
     4. Resources
       * Beauty and Functionality is the most important thing
