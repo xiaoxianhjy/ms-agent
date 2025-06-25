@@ -89,6 +89,10 @@ Next, I will provide you with the original design and the parts that need to be 
 Your instructions to follow:
 1. Accurately assess which parts of the original design need to be modified&merged based on the updates, and carefully merge them without missing any information
 2. Avoid making the PRD & code architecture increasingly lengthy after merging - you need to avoid redundant information
+3. Discard any content which does not belong to PRD & architecture, like:
+    * Imprecise information
+    * Problem description
+    * Temporary bug fixing approach
 3. Your output format should be:
 
 ```text:design.txt
@@ -151,7 +155,7 @@ You have called `split_to_sub_task` to generate this project, the call and respo
 
 Detect then conduct a complete report to identify which code file needs to be corrected and how to correct them.
 The instructions for problem checking and fixing:
-Step 1. First call `split_to_sub_task` to start some subtasks to collect detailed problems from all the related files
+Step 1. First call `split_to_sub_task` at least once to start some subtasks to collect detailed problems from all the related files
 
 An example of your query:
 
@@ -159,14 +163,21 @@ An example of your query:
 You are a subtask to collect information for me, the user feedback is ..., you need to read the ... file and find the root cause, remember you are a evaluator, not a programmer, do not write code, just collect information.
 ```
 
-Step 2. You may update your architectural design by output:
+Step 2. You may update your architectural design carefully which is already in your history when:
+
+* The bug need to be fixed by changing the design, you need to change the modules, functionalities or interfaces
+* The bug is caused by missing details in the design, you need to change the modules, functionalities or interfaces
+* The new feature need to add modules and functions in the design, you need to change the modules, functionalities or interfaces
+
+Here is an example:
+
+... your thinking here ...
 
 ```text:design.txt
-... your modified architectural design here ...
+... your detailed modules, functionalities, interfaces or files here ...
 ```
 
-* Only update your design when the bug or new feature affect your original design, which is already in your history.
-* You only need to output the **changed** parts, and mark clearly how to update.
+You only need to output the **changed** parts, and mark clearly how to update.
 
 After output design.txt, call `split_to_sub_task` again to correct the abnormal files or implement the new features.
 
@@ -188,9 +199,11 @@ After updating, you do not need to verify, the latest feedback will be given to 
         if len(design) > 0:
             front, design = messages[-1].content.split('```text:design.txt', maxsplit=1)
             design, end = design.rsplit('```', 1)
-            messages[2].content = await self.do_arch_update(runtime=runtime,
-                                                            messages=messages,
-                                                            updated_arch=design)
+            design = design.strip()
+            if design:
+                messages[2].content = await self.do_arch_update(runtime=runtime,
+                                                                messages=messages,
+                                                                updated_arch=design)
 
 
     async def after_tool_call(self, runtime: Runtime, messages: List[Message]):

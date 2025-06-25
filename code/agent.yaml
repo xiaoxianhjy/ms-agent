@@ -74,6 +74,8 @@ prompt:
 
 handler: config_handler
 
+max_chat_round: 50
+
 output_dir: output
 
 tools:

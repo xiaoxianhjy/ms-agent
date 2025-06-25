@@ -4,7 +4,7 @@ import inspect
 import os.path
 import sys
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 import json
 from modelscope_agent.callbacks import Callback, callbacks_mapping
@@ -22,6 +22,7 @@ from .memory import Memory, memory_mapping
 from .plan.base import Planer
 from .plan.utils import planer_mapping
 from .runtime import Runtime
+from ..utils.utils import save_history, read_history
 
 
 class LLMAgent(Agent):
@@ -55,6 +56,8 @@ class LLMAgent(Agent):
         self.llm: Optional[LLM] = None
         self.runtime: Optional[Runtime] = None
         self.max_chat_round: int = 0
+        self.task = kwargs.get('task', 'default')
+        self.load_cache = kwargs.get('load_cache', True)
         self.mcp_server_file = kwargs.get('mcp_server_file', None)
         self.mcp_config: Dict[str, Any] = self._parse_mcp_servers()
         self._task_begin()
@@ -254,19 +257,49 @@ class LLMAgent(Agent):
     def _prepare_runtime(self):
         self.runtime: Runtime = Runtime(llm=self.llm)
 
-    async def run(self, inputs: Union[List[Message], str],
+    def _read_history(self,
+                    messages: List[Message],
+                    **kwargs) -> Tuple[DictConfig, Runtime, List[Message]]:
+        if isinstance(messages, str):
+            query = messages
+        else:
+            query = messages[1].content
+        if not query or not self.load_cache or not self.task:
+            return self.config, self.runtime, messages # noqa
+
+        config, _messages = read_history(task=self.task, query=query)
+        if config is not None and _messages is not None:
+            runtime = Runtime(llm=self.llm)
+            if hasattr(config, 'runtime'):
+                runtime.from_dict(config.runtime)
+                delattr(config, 'runtime')
+            return config, runtime, _messages
+        else:
+            return self.config, self.runtime, messages # noqa
+
+
+    def _save_history(self,
+                    messages: List[Message],
+                    **kwargs):
+        query = messages[1].content
+        if not query or not self.task:
+            return
+        config: DictConfig = deepcopy(self.config) # noqa
+        config.runtime = self.runtime.to_dict()
+        save_history(query=query, task=self.task, config=config, messages=messages)
+
+    async def run(self, messages: Union[List[Message], str],
                   **kwargs) -> List[Message]:
         """Run the agent, mainly contains a llm calling and tool calling loop.
 
         Args:
-            inputs(`Union[str, List[Message]]`): The inputs can be a prompt string,
+            messages(`Union[str, List[Message]]`): The inputs can be a prompt string,
                 or a list of messages from the previous agent
         Returns:
             The final messages
         """
         try:
             self.max_chat_round = getattr(self.config, 'max_chat_round', 20)
-            round = 0
             self._register_callback_from_config()
             self._prepare_llm()
             self._prepare_runtime()
@@ -275,18 +308,24 @@ class LLMAgent(Agent):
             await self._prepare_planer()
             await self._prepare_rag()
             self.runtime.tag = self.tag
-            messages = await self._prepare_messages(inputs)
-            await self._loop_callback('on_task_begin', messages)
-            if self.planer:
-                messages = await self.planer.make_plan(self.runtime, messages)
+
+            self.config, self.runtime, messages = self._read_history(messages, **kwargs)
+
+            if self.runtime.round == 0:
+                # 0 means no history
+                messages = await self._prepare_messages(messages)
+                await self._loop_callback('on_task_begin', messages)
+                if self.planer:
+                    messages = await self.planer.make_plan(self.runtime, messages)
+
             for message in messages:
                 self._log_output('[' + message.role + ']:', tag=self.tag)
                 self._log_output(message.content, tag=self.tag)
             while not self.runtime.should_stop:
                 messages = await self._step(messages, self.tag)
-                round += 1
+                self.runtime.round += 1
                 # +1 means the next round the assistant may give a conclusion
-                if round >= self.max_chat_round + 1:
+                if self.runtime.round >= self.max_chat_round + 1:
                     if not self.runtime.should_stop:
                         messages.append(
                             Message(
@@ -294,7 +333,9 @@ class LLMAgent(Agent):
                                 content=f'Task {messages[1].content} failed, max round(20) exceeded.')
                         )
                     self.runtime.should_stop = True
-                    break
+                # save history
+                self._save_history(messages, **kwargs)
+
             await self._loop_callback('on_task_end', messages)
             await self._cleanup_tools()
             return messages

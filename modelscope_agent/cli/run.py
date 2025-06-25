@@ -61,6 +61,7 @@ if __name__ == '__main__':
         engine = LLMAgent(
             config=config,
             trust_remote_code=args.trust_remote_code,
+            load_cache=args.load_cache,
             mcp_server_file=args.mcp_server_file)
 
     query = ('编写一个健身打卡的网站，这个网站可以使用自己定义的用户名登记每天进行的运动，以及消耗的卡路里。'

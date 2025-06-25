@@ -76,15 +76,7 @@ class ChainWorkflow(Workflow):
     @abstractmethod
     async def run(self, inputs, **kwargs):
         config = None
-        query = inputs
         for task in self.workflow_chains:
-            if self.load_cache:
-                _old_config, _old_message = self._read_history(query, task)
-                if _old_config is not None and _old_message is not None:
-                    config = _old_config
-                    inputs = _old_message
-                    continue
-
             task_info = getattr(self.config, task)
             agent_cls: Type[Agent] = self.find_agent(task_info.agent.name)
             _cfg = getattr(task_info, 'config', config)
@@ -92,6 +84,8 @@ class ChainWorkflow(Workflow):
             init_args.pop('trust_remote_code', None)
             init_args['trust_remote_code'] = self.trust_remote_code
             init_args['mcp_server_file'] = self.mcp_server_file
+            init_args['task'] = task
+            init_args['load_cache'] = self.load_cache
             if isinstance(_cfg, str):
                 if config is not None:
                     logger.info(
@@ -104,5 +98,4 @@ class ChainWorkflow(Workflow):
                 agent = agent_cls(config=_cfg, **init_args)
             inputs = await agent.run(inputs, **kwargs)
             config = agent.prepare_config_for_next_step()
-            self._save_history(query, task, config, inputs)
         return inputs
