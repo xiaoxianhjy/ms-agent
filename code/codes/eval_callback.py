@@ -50,18 +50,42 @@ class EvalCallback(Callback):
         else:
             yield
 
+    def check_install(self):
+        if self.cur_round >= self.compile_round:
+            return ''
+        try:
+            result = subprocess.run(
+                ['npm', 'install'], capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError as e:
+            output = (e.stdout.decode('utf-8') if e.stdout else '') + '\n' + (e.stderr.decode('utf-8') if e.stderr else '')
+        else:
+            output = result.stdout + '\n' + result.stderr
+        return output
+
+    def check_runtime(self):
+        if self.cur_round >= self.compile_round:
+            return ''
+        try:
+            result = subprocess.run(
+                ['npm', 'run', 'dev'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+        except subprocess.CalledProcessError as e:
+            output = (e.stdout.decode('utf-8') if e.stdout else '') + '\n' + (e.stderr.decode('utf-8') if e.stderr else '')
+        except subprocess.TimeoutExpired as e:
+            output = (e.stdout.decode('utf-8') if e.stdout else '') + '\n' + (e.stderr.decode('utf-8') if e.stderr else '')
+        else:
+            output = result.stdout + '\n' + result.stderr
+        return output
+
     def _run_compile(self):
         if self.cur_round >= self.compile_round:
             return ''
-        commands = [['npm', 'install'], ['npm', 'run', 'build']]
+        commands = [self.check_install, self.check_runtime]
         for cmd in commands:
-            try:
-                result = subprocess.run(
-                    cmd, capture_output=True, text=True, check=True)
-            except subprocess.CalledProcessError as e:
-                output = e.stdout + '\n' + e.stderr
-            else:
-                output = result.stdout + '\n' + result.stderr
+            output = cmd()
             if 'failed' not in output.lower() and 'error' not in output.lower(
             ):
                 pass
@@ -140,7 +164,10 @@ Now let's begin:
             if not query:
                 query = self.get_compile_feedback('backend').strip()
         if not query:
+            human_feedback = True
             query = self.get_human_feedback().strip()
+        else:
+            human_feedback = False
         if not query:
             self.feedback_ended = True
             feedback = (
@@ -149,6 +176,29 @@ Now let's begin:
                 'The project runs Ok, you do not need to do any check of fix.')
         else:
             all_local_files = await self.file_system.list_files()
+
+            if human_feedback:
+                step2 = """Step 2. You may update your architectural design carefully which is already in your history when:
+
+* ONLY update the design if the feedback is a new feature
+
+... your thinking here ...
+
+```text:design.txt
+... your detailed modules, functionalities, interfaces or files here ...
+```
+
+You only need to output the **changed** parts, and mark clearly how to update.
+
+* DO NOT update the design if the feedback is an issue
+
+After output design.txt, call `split_to_sub_task` again to correct the abnormal files or implement the new features.
+"""
+
+            else:
+                step2 = """Step 2. Call `split_to_sub_task` again to correct the abnormal files.
+"""
+
             feedback = f"""Here is a feedback:
 
 {query}
@@ -167,23 +217,7 @@ An example of your query:
 You are a subtask to collect information for me, the user feedback is ..., you need to read the ... file and find the root cause, remember you are a evaluator, not a programmer, do not write code, just collect information.
 ```
 
-Step 2. You may update your architectural design carefully which is already in your history when:
-
-* The bug need to be fixed by changing the design, you need to change the modules, functionalities or interfaces
-* The bug is caused by missing details in the design, you need to change the modules, functionalities or interfaces
-* The new feature need to add modules and functions in the design, you need to change the modules, functionalities or interfaces
-
-Here is an example:
-
-... your thinking here ...
-
-```text:design.txt
-... your detailed modules, functionalities, interfaces or files here ...
-```
-
-You only need to output the **changed** parts, and mark clearly how to update.
-
-After output design.txt, call `split_to_sub_task` again to correct the abnormal files or implement the new features.
+{step2}
 
 **You need to remind the subtask do a minimum change in case that the normal code is damaged**
 
