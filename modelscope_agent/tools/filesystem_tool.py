@@ -167,7 +167,9 @@ class FileSystemTool(ToolBase):
         """
         try:
             with open(os.path.join(self.output_dir, path), 'r') as f:
-                return f.read()
+                content = f.read()
+                content = f'File content is: ```\n{content}\n```\nAll file content is above wrapped in the ```.'
+                return content
         except Exception as e:
             return f'Read file <{path}> failed, error: ' + str(e)
 

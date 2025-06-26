@@ -1,6 +1,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os
 import subprocess
+import sys
 from contextlib import contextmanager
 from typing import List, Optional
 
@@ -142,12 +143,15 @@ Now let's begin:
             Message(role='system', content=_arch_update_system),
             Message(role='user', content=query),
         ]
-        _response_message = runtime.llm.generate(_messages, stream=False)
-        for line in _response_message.content.split('\n'):
-            for _line in line.split('\\n'):
-                logger.info(f'[Arch Updater] {_line}')
+        logger.info(f'[Arch Updater]: ')
+        _content = ''
+        for _response_message in runtime.llm.generate(_messages):
+            new_content = _response_message.content[len(_content):]
+            sys.stdout.write(new_content)
+            sys.stdout.flush()
+            _content = _response_message.content
 
-        front, design = _response_message.content.split('```text:design.txt', maxsplit=1)
+        front, design = _response_message.content.split('```text:design.txt', maxsplit=1) # noqa
         design, end = design.rsplit('```', 1)
         return design
 
