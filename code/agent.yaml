@@ -44,11 +44,11 @@ prompt:
       * Retry the failed tasks
       * The preference language of the frontend is react
       * Use `split_to_sub_task` to distribute tasks
-    6. Use vite to build your frontend code
-      * Generate frontend/vite.config.ts
-      * vite.js needs a entrypoint `frontend/index.html`
-      * Follow the file structure requirements of vite.js
-
+    6. Project requirements
+      * Use vite.js to build your frontend code
+      * Do not use ts check in package.json of both frontend and backend
+      * Do not let your backend silent crash, make sure the error messages can be printed in the terminal when running `npm run dev`
+    
     Now, I will call the `split_to_sub_task` tool with corrected and detailed subtasks.
     
     Then, you must call tool `split_to_sub_task` with the following args example:
@@ -79,7 +79,7 @@ prompt:
 
 handler: config_handler
 
-max_chat_round: 50
+max_chat_round: 300
 
 output_dir: output
 
