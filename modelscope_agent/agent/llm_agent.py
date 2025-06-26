@@ -287,7 +287,7 @@ class LLMAgent(Agent):
                     messages: List[Message],
                     **kwargs):
         query = messages[1].content
-        if not query or not self.task:
+        if not query or not self.task or self.task == 'subtask':
             return
         config: DictConfig = deepcopy(self.config) # noqa
         config.runtime = self.runtime.to_dict()
