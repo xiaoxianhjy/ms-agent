@@ -1,14 +1,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os.path
-from abc import abstractmethod
 from typing import Dict, Optional, Type
 
 from ms_agent.agent import Agent
 from ms_agent.config import Config
 from ms_agent.utils import get_logger
+from ms_agent.workflow.base import Workflow
 from omegaconf import DictConfig
-
-from .base import Workflow
 
 logger = get_logger()
 
@@ -73,7 +71,6 @@ class ChainWorkflow(Workflow):
             current_task = next_task
         self.workflow_chains = result
 
-    @abstractmethod
     async def run(self, inputs, **kwargs):
         config = None
         for task in self.workflow_chains:
