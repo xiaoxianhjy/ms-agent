@@ -118,7 +118,8 @@ def parse_requirements(fname='requirements.txt', with_version=True):
 
 
 if __name__ == '__main__':
-    install_requires, deps_link = parse_requirements('requirements.txt')
+    install_requires, deps_link = parse_requirements(
+        'requirements/framework.txt')
     extra_requires = {}
     all_requires = []
     all_requires.extend(install_requires)
