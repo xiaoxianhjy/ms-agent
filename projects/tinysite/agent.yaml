@@ -11,8 +11,6 @@ generation_config:
   max_completion_tokens: 120000
   stream: true
   extra_body:
-    dashscope_extend_params:
-      provider: idealab
     enable_thinking: false
 
 prompt:
