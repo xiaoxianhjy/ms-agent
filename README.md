@@ -16,7 +16,6 @@
 <a href='https://modelscope-agent.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/modelscope-agent/badge/?version=latest' alt='Documentation Status' />
 </a>
-<a href="https://github.com/modelscope/modelscope"><img src="https://img.shields.io/badge/modelscope[framework]-%E2%89%A51.16.0-5D91D4.svg"></a>
 <a href="https://github.com/modelscope/modelscope-agent/actions?query=branch%3Amaster+workflow%3Acitest++"><img src="https://img.shields.io/github/actions/workflow/status/modelscope/modelscope-agent/citest.yaml?branch=master&logo=github&label=CI"></a>
 <a href="https://github.com/modelscope/modelscope-agent/blob/main/LICENSE"><img src="https://img.shields.io/github/license/modelscope/modelscope-agent"></a>
 <a href="https://github.com/modelscope/modelscope-agent/pulls"><img src="https://img.shields.io/badge/PR-welcome-55EB99.svg"></a>
@@ -30,6 +29,9 @@
 
 ## Introduction
 
+
+
+> [WARNING] For historical archive versions, please refer to: https://github.com/modelscope/ms-agent/tree/0.8.0
 
 
 ## 🎉 News
