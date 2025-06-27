@@ -52,9 +52,9 @@ prompt:
       * Do not use mock data in your frontend if a backend is in your plan
     
     Now, I will call the `split_to_sub_task` tool with corrected and detailed subtasks.
-    
+
     Then, you must call tool `split_to_sub_task` with the following args example:
-    
+
     **Final Tool Args Example:**
 
     ```json

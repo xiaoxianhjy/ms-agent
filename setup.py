@@ -11,7 +11,7 @@ def readme():
     return content
 
 
-version_file = 'modelscope_agent/version.py'
+version_file = 'ms_agent/version.py'
 
 
 def get_version():
@@ -124,15 +124,16 @@ if __name__ == '__main__':
     all_requires.extend(install_requires)
 
     setup(
-        name='modelscope-agent',
+        name='ms-agent',
         version=get_version(),
-        description='ModelScope-Agent: A ins style agent',
+        description=
+        'MS-Agent: Lightweight Framework for Empowering Agents with Autonomous Exploration',
         long_description=readme(),
         long_description_content_type='text/markdown',
         author='The ModelScope teams',
         author_email='contact@modelscope.cn',
         keywords='python, agent, LLM',
-        url='https://github.com/modelscope/modelscope-agent',
+        url='https://github.com/modelscope/ms-agent',
         packages=find_packages(exclude=('configs', 'demo')),
         include_package_data=True,
         package_data={
@@ -154,7 +155,7 @@ if __name__ == '__main__':
         install_requires=install_requires,
         extras_require=extra_requires,
         entry_points={
-            'console_scripts': ['ms-agent=modelscope_agent.cli:main']
+            'console_scripts': ['ms-agent=ms_agent.cli.cli:run_cmd']
         },
         dependency_links=deps_link,
         zip_safe=False)

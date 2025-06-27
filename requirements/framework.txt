@@ -1,3 +1,6 @@
 dotenv
+mcp
 modelscope
+numpy
 omegaconf
+openai
