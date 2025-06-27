@@ -126,7 +126,8 @@ if __name__ == '__main__':
     setup(
         name='ms-agent',
         version=get_version(),
-        description='ms-agent: Empowering agents with autonomous exploration',
+        description=
+        'MS-Agent: Lightweight Framework for Empowering Agents with Autonomous Exploration',
         long_description=readme(),
         long_description_content_type='text/markdown',
         author='The ModelScope teams',
