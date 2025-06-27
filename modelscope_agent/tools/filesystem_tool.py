@@ -171,6 +171,7 @@ class FileSystemTool(ToolBase):
             return ('You have read this file once, keep reading may cause dead loop.\n'
                     'If the actual content conflicts with your inputs, '
                     'consider the file has been modified already, you need to feedback this problem.')
+        self.call_history.add(key)
         try:
             with open(os.path.join(self.output_dir, path), 'r') as f:
                 content = f.read()
