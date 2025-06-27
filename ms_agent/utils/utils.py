@@ -1,11 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import hashlib
 import importlib
-import os.path
-from typing import List, Optional
-
 import json
+import os.path
 from omegaconf import DictConfig, OmegaConf
+from typing import List, Optional
 
 from modelscope.hub.utils.utils import get_cache_dir
 
@@ -52,8 +51,8 @@ def save_history(query: str, task: str, config: DictConfig,
 
 
 def read_history(query: str, task: str):
-    from ms_agent.llm import Message
     from ms_agent.config import Config
+    from ms_agent.llm import Message
     cache_dir = os.path.join(get_cache_dir(), 'workflow_cache')
     os.makedirs(cache_dir, exist_ok=True)
     folder = str_to_md5(query)

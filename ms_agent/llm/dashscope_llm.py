@@ -1,9 +1,9 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
+from omegaconf import DictConfig
 from typing import List
 
 from ms_agent.llm.openai_llm import OpenAI
 from ms_agent.llm.utils import Message, Tool
-from omegaconf import DictConfig
 
 
 class DashScope(OpenAI):

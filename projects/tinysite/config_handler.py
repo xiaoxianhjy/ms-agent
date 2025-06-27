@@ -1,5 +1,6 @@
-from ms_agent.config.config import ConfigLifecycleHandler
 from omegaconf import DictConfig
+
+from ms_agent.config.config import ConfigLifecycleHandler
 
 
 class ConfigHandler(ConfigLifecycleHandler):
@@ -13,7 +14,9 @@ class ConfigHandler(ConfigLifecycleHandler):
             else:
                 config.callbacks = ['callbacks/coding_callback']
         elif tag == 'Refiner':
-            config.callbacks = ['callbacks/eval_callback', 'callbacks/coding_callback']
+            config.callbacks = [
+                'callbacks/eval_callback', 'callbacks/coding_callback'
+            ]
         elif 'worker' in tag:
             config.callbacks = ['callbacks/artifact_callback']
             delattr(config.tools, 'split_task')

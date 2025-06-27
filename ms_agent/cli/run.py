@@ -3,13 +3,12 @@ import argparse
 import asyncio
 import os
 
+from modelscope import snapshot_download
+from modelscope.cli.base import CLICommand
 from ms_agent.agent.llm_agent import LLMAgent
 from ms_agent.config import Config
 from ms_agent.utils import strtobool
 from ms_agent.workflow.chain_workflow import ChainWorkflow
-
-from modelscope import snapshot_download
-from modelscope.cli.base import CLICommand
 
 
 def subparser_func(args):

@@ -1,6 +1,7 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
-from ms_agent.llm.openai_llm import OpenAI
 from omegaconf import DictConfig
+
+from ms_agent.llm.openai_llm import OpenAI
 
 
 class ModelScope(OpenAI):

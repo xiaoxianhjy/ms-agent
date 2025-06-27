@@ -1,7 +1,8 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 # !/usr/bin/env python
-import os
 from setuptools import find_packages, setup
+
+import os
 from typing import List
 
 

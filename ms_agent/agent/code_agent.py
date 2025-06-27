@@ -3,9 +3,8 @@ import importlib
 import inspect
 import os
 import sys
-from typing import Dict, Optional
-
 from omegaconf import DictConfig
+from typing import Dict, Optional
 
 from . import Agent
 from .code import Code

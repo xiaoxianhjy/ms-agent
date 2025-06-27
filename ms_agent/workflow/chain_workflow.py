@@ -1,12 +1,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os.path
+from omegaconf import DictConfig
 from typing import Dict, Optional, Type
 
 from ms_agent.agent import Agent
 from ms_agent.config import Config
 from ms_agent.utils import get_logger
 from ms_agent.workflow.base import Workflow
-from omegaconf import DictConfig
 
 logger = get_logger()
 

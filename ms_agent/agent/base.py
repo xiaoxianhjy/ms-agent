@@ -3,12 +3,12 @@ import importlib
 import inspect
 import sys
 from abc import abstractmethod
+from omegaconf import DictConfig
 from typing import Dict, List, Optional, Union
 
 from ms_agent.config import Config
 from ms_agent.config.config import ConfigLifecycleHandler
 from ms_agent.llm import Message
-from omegaconf import DictConfig
 
 
 class Agent:

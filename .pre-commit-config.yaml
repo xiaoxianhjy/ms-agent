@@ -1,6 +1,6 @@
 repos:
-  - repo: https://github.com/pycqa/flake8.git
-    rev: 4.0.0
+  - repo: https://github.com/PyCQA/flake8.git
+    rev: 7.3.0
     hooks:
       - id: flake8
         exclude: |
@@ -10,7 +10,7 @@ repos:
                 tests/run.py
             )$
   - repo: https://github.com/PyCQA/isort.git
-    rev: 4.3.21
+    rev: 6.0.1
     hooks:
       - id: isort
         exclude: |
@@ -20,7 +20,7 @@ repos:
                 swift/cli/sft.py
             )$
   - repo: https://github.com/pre-commit/mirrors-yapf.git
-    rev: v0.30.0
+    rev: v0.32.0
     hooks:
       - id: yapf
         exclude: |
@@ -30,7 +30,7 @@ repos:
                 tests/run.py
             )$
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
-    rev: v3.1.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
         exclude: thirdparty/|tests/run.py

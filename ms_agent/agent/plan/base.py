@@ -1,10 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
+from pydantic import ConfigDict
 from typing import List
 
 from ms_agent.agent.runtime import Runtime
 from ms_agent.llm.utils import Message
-from pydantic import ConfigDict
 
 
 class Planer:

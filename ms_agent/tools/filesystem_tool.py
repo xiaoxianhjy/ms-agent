@@ -1,11 +1,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os
+from omegaconf import DictConfig
 from typing import Optional
 
 from ms_agent.llm.utils import Tool
 from ms_agent.tools.base import ToolBase
 from ms_agent.utils import get_logger
-from omegaconf import DictConfig
 
 logger = get_logger()
 
@@ -168,9 +168,11 @@ class FileSystemTool(ToolBase):
         """
         key = self.config.tag + '-' + path
         if key in self.call_history:
-            return ('You have read this file once, keep reading may cause dead loop.\n'
-                    'If the actual content conflicts with your inputs, '
-                    'consider the file has been modified already, you need to feedback this problem.')
+            return (
+                'You have read this file once, keep reading may cause dead loop.\n'
+                'If the actual content conflicts with your inputs, '
+                'consider the file has been modified already, you need to feedback this problem.'
+            )
         self.call_history.add(key)
         try:
             with open(os.path.join(self.output_dir, path), 'r') as f:

@@ -50,7 +50,7 @@ prompt:
       * Do not let your backend silent crash, make sure the error messages can be printed in the terminal when running `npm run dev`
       * Do not use a conflict port of frontend and backend, use obscure ports
       * Do not use mock data in your frontend if a backend is in your plan
-    
+
     Now, I will call the `split_to_sub_task` tool with corrected and detailed subtasks.
 
     Then, you must call tool `split_to_sub_task` with the following args example:

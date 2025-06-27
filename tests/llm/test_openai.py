@@ -1,10 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import os
 import unittest
+from omegaconf import DictConfig, OmegaConf
 
 from ms_agent.llm.openai_llm import OpenAI
 from ms_agent.llm.utils import Message, Tool, ToolCall
-from omegaconf import DictConfig, OmegaConf
 
 
 class OpenaiLLM(unittest.TestCase):
