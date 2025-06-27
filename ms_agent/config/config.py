@@ -3,12 +3,13 @@ import argparse
 import os.path
 from abc import abstractmethod
 from copy import deepcopy
-from omegaconf import DictConfig, ListConfig, OmegaConf
-from omegaconf.basecontainer import BaseContainer
 from typing import Any, Dict, Union
 
-from modelscope import snapshot_download
 from ms_agent.utils import get_logger
+from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf.basecontainer import BaseContainer
+
+from modelscope import snapshot_download
 from .env import Env
 
 logger = get_logger()

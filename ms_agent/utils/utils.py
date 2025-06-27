@@ -1,10 +1,11 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import hashlib
 import importlib
-import json
 import os.path
-from omegaconf import DictConfig, OmegaConf
 from typing import List, Optional
+
+import json
+from omegaconf import DictConfig, OmegaConf
 
 from modelscope.hub.utils.utils import get_cache_dir
 

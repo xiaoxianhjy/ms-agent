@@ -1,9 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 from abc import abstractmethod
-from omegaconf import DictConfig
 from typing import Any, Dict, List, Optional
 
 from ms_agent.config import Config
+from omegaconf import DictConfig
+
 from .utils import Message, Tool
 
 

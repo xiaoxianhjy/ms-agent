@@ -1,6 +1,5 @@
-from omegaconf import DictConfig
-
 from ms_agent.config.config import ConfigLifecycleHandler
+from omegaconf import DictConfig
 
 
 class ConfigHandler(ConfigLifecycleHandler):

@@ -1,13 +1,12 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import importlib
 import inspect
-import json
 import os.path
 import sys
 from copy import deepcopy
-from omegaconf import DictConfig
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import json
 from ms_agent.callbacks import Callback, callbacks_mapping
 from ms_agent.llm.llm import LLM
 from ms_agent.llm.utils import Message, Tool
@@ -16,6 +15,8 @@ from ms_agent.rag.utils import rag_mapping
 from ms_agent.tools import ToolManager
 from ms_agent.utils import async_retry
 from ms_agent.utils.logger import logger
+from omegaconf import DictConfig
+
 from ..utils.utils import read_history, save_history
 from .base import Agent
 from .memory import Memory, memory_mapping

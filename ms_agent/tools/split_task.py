@@ -1,10 +1,10 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import asyncio
-from omegaconf import DictConfig
 
 from ms_agent.llm.utils import Tool
 from ms_agent.tools.base import ToolBase
 from ms_agent.utils.utils import escape_yaml_string
+from omegaconf import DictConfig
 
 
 class SplitTask(ToolBase):
