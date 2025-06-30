@@ -41,6 +41,10 @@ MS-Agent is a lightweight framework designed to empower agents with autonomous e
 
 > [WARNING] For historical archive versions, please refer to: https://github.com/modelscope/ms-agent/tree/0.8.0
 
+|  WeChat Group
+|:-------------------------:
+|  <img src="asset/ms-agent.jpg" width="200" height="200">
+
 
 ## 🎉 News
 
