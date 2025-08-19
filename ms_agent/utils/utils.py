@@ -4,6 +4,7 @@ import glob
 import hashlib
 import html
 import importlib
+import importlib.util
 import os.path
 import re
 from io import BytesIO
@@ -562,3 +563,27 @@ def get_files_from_dir(folder_path: str,
     ]
 
     return file_list
+
+
+def is_package_imported(package_name: str) -> bool:
+    """
+    Checks if a package has been imported.
+    Args:
+        package_name (str): The name of the package as a string.
+    Returns:
+        True if the package is imported, False otherwise.
+    """
+    return package_name in __import__('sys').modules
+
+
+def is_package_installed(package_name: str) -> bool:
+    """
+    Checks if a package is installed by attempting to import it.
+
+    Args:
+    package_name: The name of the package as a string.
+
+    Returns:
+    True if the package is installed and can be imported, False otherwise.
+    """
+    return importlib.util.find_spec(package_name) is not None

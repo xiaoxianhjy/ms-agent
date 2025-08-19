@@ -1,14 +1,18 @@
 # Copyright (c) Alibaba, Inc. and its affiliates.
 import base64
 import mimetypes
+import os
+import re
+import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import json
 import requests
 from ms_agent.utils.logger import get_logger
-from ms_agent.utils.utils import get_files_from_dir
+from ms_agent.utils.utils import (get_files_from_dir, is_package_installed,
+                                  text_hash)
 
 logger = get_logger()
 
@@ -38,7 +42,7 @@ class PushToGitHub(PushToHub):
                  visibility: Optional[str] = 'public',
                  description: Optional[str] = None):
         """
-        Initialize the GitHub pusher with authentication.
+        Initialize the `PushToGitHub` class with authentication.
 
         Args:
             user_name (str): GitHub username.
@@ -56,14 +60,14 @@ class PushToGitHub(PushToHub):
             RuntimeError: If there is an issue with the GitHub API.
 
         Examples:
-            >>> pusher = PushToGitHub(
+            >>> push_to_github = PushToGitHub(
             ...     user_name="your_username",
             ...     repo_name="your_repo_name",
             ...     token="your_personal_access_token",
             ...     visibility="public",
             ...     description="My awesome repository"
             ... )
-            >>> pusher.push(folder_path="/path/to/your_dir", branch="main", commit_message="Initial commit")
+            >>> push_to_github.push(folder_path="/path/to/your_dir", branch="main", commit_message="Initial commit")
         """
         super().__init__()
 
@@ -324,3 +328,156 @@ class PushToGitHub(PushToHub):
             f'Successfully pushed files to '
             f"https://github.com/{self.user_name}/{self.repo_name}/tree/{branch}/{path_in_repo or ''}"
         )
+
+
+class PushToModelScope(PushToHub):
+    """
+    Push files to ModelScope repository.
+    """
+
+    def __init__(
+        self,
+        repo_id: str,
+        token: str,
+    ):
+        """
+        Initialize the `PushToModelScope` with authentication.
+
+        Args:
+            repo_id (str): The ModelScope repository ID in the format 'namespace/repo_name'.
+                For example, 'my_namespace/my_model'.
+            token (str): ModelScope access token with permissions to push to the repository.
+                You can get the token from your ModelScope account settings.
+                Refer to `https://modelscope.cn/my/myaccesstoken`
+        """
+
+        if not is_package_installed('modelscope'):
+            raise ImportError(
+                'ModelScope package is not installed. Please install it with `pip install modelscope`.'
+            )
+
+        from modelscope.hub.api import HubApi
+        from modelscope.hub.api import get_endpoint
+
+        self.api = HubApi()
+        self.token = token
+        self.repo_id = repo_id
+        self.endpoint = get_endpoint()
+
+        super().__init__()
+
+    @staticmethod
+    def _preprocess(folder_path: str,
+                    path_in_repo_url: str,
+                    add_powered_by: bool = True) -> 'Tuple[str, str]':
+
+        report_filename = 'report.md'
+        file_path = os.path.join(folder_path, report_filename)
+        file_path_hash: str = text_hash(text=file_path, keep_n_chars=8)
+        new_report_filename: str = f'report_{file_path_hash}.md'
+        current_cache_path: str = os.path.join(folder_path, '.cache')
+        os.makedirs(current_cache_path, exist_ok=True)
+        new_file_path = os.path.join(current_cache_path, new_report_filename)
+
+        if not os.path.exists(file_path):
+            logger.warning(
+                f'The report file: {file_path} does not exist. Skipping preprocessing.'
+            )
+            return '', ''
+
+        try:
+            shutil.copy(file_path, new_file_path)
+        except Exception as e:
+            logger.error(f'Error copying the report file: {e}')
+            return '', ''
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if add_powered_by and not content.lstrip().startswith(
+                        '<span style='):
+                    content = """<span style="color: darkgreen; font-weight: bold; font-family: monospace;
+                    ">Powered by [MS-Agent](https://github.com/modelscope/ms-agent) |
+                    [DocResearch](https://github.com/modelscope/ms-agent/blob/main/projects/doc_research/README.md)
+                    </span> <br>""" + content
+
+            pattern = r'!\[(.*?)\]\((resources/.*?)\)'
+            replacement = rf'![\1]({path_in_repo_url}\2)'
+            new_content, count = re.subn(pattern, replacement, content)
+
+            if count > 0:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+                logger.info(
+                    f"Preprocessed {count} 'resources/' links in {file_path}.")
+            else:
+                logger.info(
+                    f'No "resources/" links found in {file_path}. No changes made.'
+                )
+
+        except IOError as e:
+            logger.error(f'Error reading or writing the report file: {e}')
+            return '', ''
+        except Exception as e:
+            logger.error(
+                f'Unexpected error during preprocessing of PushToModelScope: {e}'
+            )
+            return '', ''
+
+        return file_path, new_file_path
+
+    @staticmethod
+    def _postprocess(report_file_path: str, report_file_path_in_cache: str):
+
+        try:
+            shutil.move(report_file_path_in_cache, report_file_path)
+            shutil.rmtree(
+                os.path.dirname(report_file_path_in_cache), ignore_errors=True)
+        except FileNotFoundError:
+            logger.warning(
+                f'The backup file of report: {report_file_path_in_cache} does not exist.'
+            )
+
+    def push(
+        self,
+        folder_path: str,
+        path_in_repo: Optional[str] = None,
+        repo_type: Optional[str] = 'model',
+        commit_message: Optional[str] = None,
+        exclude: Optional[List[str]] = None,
+    ):
+        """
+        Push files from a local directory to the ModelScope repository.
+
+        Args:
+            folder_path (str): The local directory containing files to upload.
+            path_in_repo (Optional[str]): The relative path in the repository where files should be stored.
+                Defaults to the root of the repository.
+            repo_type (Optional[str]): Type of the repository, either 'model' or 'dataset'. Defaults to 'model'.
+            commit_message (Optional[str]): The commit message for the upload. Defaults to a generic message.
+            exclude (Optional[List[str]]): List of regex patterns to exclude files from upload. Defaults to None.
+        """
+        path_in_repo_replace = f'{path_in_repo.rstrip("/")}/' if path_in_repo else ''
+        path_in_repo_url: str = f'{self.endpoint}/{repo_type}s/{self.repo_id}/resolve/master/{path_in_repo_replace}'
+        origin_report, backup_report = self._preprocess(
+            folder_path, path_in_repo_url)
+
+        try:
+            self.api.upload_folder(
+                repo_id=self.repo_id,
+                folder_path=folder_path,
+                path_in_repo=path_in_repo,
+                commit_message=commit_message
+                or f'Upload files to {self.repo_id}',
+                token=self.token,
+                ignore_patterns=exclude,
+                revision='master',
+            )
+        except Exception as e:
+            logger.error(f'Failed to push files to ModelScope: {e}')
+        finally:
+            if origin_report and backup_report:
+                self._postprocess(
+                    report_file_path=origin_report,
+                    report_file_path_in_cache=backup_report,
+                )
