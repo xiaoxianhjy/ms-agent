@@ -7,6 +7,7 @@ import importlib
 import importlib.util
 import os.path
 import re
+import sys
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
@@ -19,6 +20,48 @@ from omegaconf import DictConfig, OmegaConf
 from .logger import get_logger
 
 logger = get_logger()
+
+if sys.version_info >= (3, 11):
+    from builtins import ExceptionGroup as BuiltInExceptionGroup
+else:
+    # Define a placeholder class for type-checking compatibility
+    class BuiltInExceptionGroup(BaseException):
+
+        def __init__(self, message, exceptions):
+            self.message = message
+            self.exceptions = exceptions
+            self.args = (message, )
+
+        def __str__(self):
+            return f'{self.message}: {self.exceptions}'
+
+        def __repr__(self):
+            return f'ExceptionGroup({self.message!r}, {self.exceptions!r})'
+
+
+def enhance_error(e, prefix: str = ''):
+    # Get the original exception type
+    exc_type = type(e)
+
+    # Special handling for ExceptionGroup
+    if exc_type.__name__ == 'ExceptionGroup':
+        # Recursively enhance each sub-exception
+        new_msg = f'{prefix}: {e}'
+        new_exceptions = [enhance_error(exc, prefix) for exc in e.exceptions]
+        # Note: ExceptionGroup requires a list of exceptions
+        new_exc = BuiltInExceptionGroup(new_msg, new_exceptions)
+        return new_exc
+
+    # For other exceptions: attempt to construct a new one, using only args[0] (the message part)
+    try:
+        # Most exception types support exc("new message")
+        new_exc = exc_type(f'{prefix}: {e}')
+        new_exc.__cause__ = e.__cause__
+        new_exc.__context__ = e.__context__
+        return new_exc
+    except Exception:
+        # Construction failed; fall back to a generic exception
+        return RuntimeError(f'{prefix}: {e}')
 
 
 def assert_package_exist(package, message: Optional[str] = None):
