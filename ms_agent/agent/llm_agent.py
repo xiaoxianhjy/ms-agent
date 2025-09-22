@@ -72,6 +72,7 @@ class LLMAgent(Agent):
         self.mcp_server_file = kwargs.get('mcp_server_file', None)
         self.mcp_config: Dict[str, Any] = self._parse_mcp_servers(
             kwargs.get('mcp_config', {}))
+        self.mcp_client = kwargs.get('mcp_client', None)
         self._task_begin()
 
     def register_callback(self, callback: Callback):
@@ -187,7 +188,8 @@ class LLMAgent(Agent):
 
     async def _prepare_tools(self):
         """Initialize and connect the tool manager."""
-        self.tool_manager = ToolManager(self.config, self.mcp_config)
+        self.tool_manager = ToolManager(self.config, self.mcp_config,
+                                        self.mcp_client)
         await self.tool_manager.connect()
 
     async def _cleanup_tools(self):
