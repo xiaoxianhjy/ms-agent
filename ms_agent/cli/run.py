@@ -6,10 +6,10 @@ import os
 from ms_agent.agent.llm_agent import LLMAgent
 from ms_agent.config import Config
 from ms_agent.utils import strtobool
+from ms_agent.utils.constants import AGENT_CONFIG_FILE
 from ms_agent.workflow.chain_workflow import ChainWorkflow
 
-from modelscope import snapshot_download
-from modelscope.cli.base import CLICommand
+from .base import CLICommand
 
 
 def subparser_func(args):
@@ -26,8 +26,7 @@ class RunCMD(CLICommand):
 
     @staticmethod
     def define_args(parsers: argparse.ArgumentParser):
-        """ define args for run command.
-        """
+        """Define args for run command."""
         parser: argparse.ArgumentParser = parsers.add_parser(RunCMD.name)
         parser.add_argument(
             '--query',
@@ -47,19 +46,17 @@ class RunCMD(CLICommand):
             required=False,
             type=str,
             default='false',
-            help=
-            'Trust the code belongs to the config file, set this if you trust the code'
-        )
+            help='Trust the code belongs to the config file, default False')
         parser.add_argument(
             '--load_cache',
             required=False,
             type=str,
             default='false',
             help=
-            'Load previous step histories from cache, this is useful when a query fails '
-            'and retry')
+            'Load previous step histories from cache, this is useful when a query fails and retry'
+        )
         parser.add_argument(
-            '--mcp_server',
+            '--mcp_config',
             required=False,
             type=str,
             default=None,
@@ -87,9 +84,10 @@ class RunCMD(CLICommand):
     def execute(self):
         if not self.args.config:
             current_dir = os.getcwd()
-            if os.path.exists(os.path.join(current_dir, 'agent.yaml')):
-                self.args.config = os.path.join(current_dir, 'agent.yaml')
+            if os.path.exists(os.path.join(current_dir, AGENT_CONFIG_FILE)):
+                self.args.config = os.path.join(current_dir, AGENT_CONFIG_FILE)
         elif not os.path.exists(self.args.config):
+            from modelscope import snapshot_download
             self.args.config = snapshot_download(self.args.config)
         self.args.trust_remote_code: bool = strtobool(
             self.args.trust_remote_code)  # noqa
@@ -102,14 +100,14 @@ class RunCMD(CLICommand):
                 config=config,
                 trust_remote_code=self.args.trust_remote_code,
                 load_cache=self.args.load_cache,
-                mcp_server=self.args.mcp_server,
+                mcp_server=self.args.mcp_config,
                 mcp_server_file=self.args.mcp_server_file,
                 task=self.args.query)
         else:
             engine = LLMAgent(
                 config=config,
                 trust_remote_code=self.args.trust_remote_code,
-                mcp_server=self.args.mcp_server,
+                mcp_server=self.args.mcp_config,
                 mcp_server_file=self.args.mcp_server_file,
                 load_cache=self.args.load_cache,
                 task=self.args.query)
