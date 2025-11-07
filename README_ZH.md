@@ -273,41 +273,9 @@ pip install ms-agent
 **使用示例**：
 > 该示例展示了如何配置和运行一个Agent Skill，基于p5.js的流场生成艺术代码。
 
-```python
-import os
-from ms_agent.agent import create_agent_skill
 
+参考代码： [Run Skills](projects/agent_skills/run.py)
 
-def main():
-    """
-    Main function to create and run an agent with skills.
-    """
-    work_dir: str = 'temp_workspace'
-    skills_dir: str = '/path/to/skills'   # Refer to `https://github.com/modelscope/ms-agent/tree/main/projects/agent_skills/skills`
-    model_name: str = 'qwen-max-latest'
-
-    agent = create_agent_skill(
-        skills=skills_dir,
-        model=model_name,
-        api_key=os.getenv('OPENAI_API_KEY'),
-        base_url=os.getenv(
-            'OPENAI_BASE_URL',
-            'https://dashscope.aliyuncs.com/compatible-mode/v1'),
-        stream=True,
-        use_sandbox=True,  # Note: Make sure the `Docker Daemon` is running if use_sandbox=True
-        work_dir=work_dir,
-    )
-
-    user_query: str = 'Create generative art using p5.js with seeded randomness, flow fields, and particle systems, please fill in the details and provide the complete code based on the templates.'
-
-    response = agent.run(user_query)
-    print(f'\n\n** Agent skill results: {response}\n')
-
-
-if __name__ == '__main__':
-
-    main()
-```
 
 **运行结果**：
 
@@ -438,10 +406,11 @@ PYTHONPATH=. openai_api_key=your-api-key openai_base_url=your-api-url python ms_
 1. 新闻收集智能体 [ms-agent/newspaper](https://www.modelscope.cn/models/ms-agent/newspaper/summary)
 
 
-## 展望
+## 未来计划
 
 我们致力于不断改进和扩展 MS-Agent 框架，提升大模型和智能体的能力边界。未来的计划包括：
 
+- [x] 支持[Anthropic-Agent-Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills) 协议，实现智能体技能模块，提升智能体在复杂任务上的表现。
 - [ ] 金融深度研究智能体 **FinResearch** - 专注于金融领域的深度研究和分析。
 - [ ] 多模态检索增强生成 **Multimodal Agentic Search** - 支持大规模多模态文档检索和图文检索结果生成。
 - [ ] 增强的 **Agent Skills** - 提供更多预定义的技能和工具，提升智能体技能边界，并支持多技能协作，完成复杂任务执行。
