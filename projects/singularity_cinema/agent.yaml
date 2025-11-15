@@ -71,12 +71,21 @@ text2image:
 t2i_num_parallel: 1
 llm_num_parallel: 10
 
+code_fix_round: 5
+mllm_fix_round: 1
+
 video:
   bitrate: 2500k
   preset: ultrafast
   fps: 24
 
-voice: emma
+manim_auto_test:
+  manim_test_model: gemini-2.5-flash-thinking
+  manim_test_api_key:
+  manim_test_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+
+subtitle_lang:
+voice: male
 
 voices:
   male:

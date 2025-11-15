@@ -77,12 +77,13 @@ class GenerateManimCode(CodeAgent):
 - Class name: {class_name}
 - Content: {content}
 - Requirement from the storyboard designer: {manim_requirement}
+    * If the storyboard designer's layout is poor, create a better custom layout
 - Duration: {audio_duration} seconds
 - Code language: **Python**
 
 **Spatial Constraints (CRITICAL)**:
-• Canvas size: (1280, 700) (width x height) which is the top 3/4 of screen, bottom is left for subtitles
-• Safe area: x∈(-6.5, 6.5), y∈(-3.5, 3.5) (0.5 units from edge)
+• Canvas size: (1500, 700) (width x height) which is the top 3/4 of screen, bottom is left for subtitles
+• Safe area: x∈(-6.5, 6.5), y∈(-3.2, 3.2) (0.5 units from edge)
 • Element spacing: Use buff=0.3 or larger (avoid overlap)
 • Relative positioning: Prioritize next_to(), align_to(), shift()
 • Avoid multiple elements using the same reference point
@@ -97,6 +98,8 @@ class GenerateManimCode(CodeAgent):
 • Avoid using default sizes - always set explicit dimensions
 • Maintain consistent box sizes within the same diagram level/category
 • All boxes must have thick strokes for clear visibility
+• Keep text within frame by controlling font sizes. Use smaller fonts for Latin script than Chinese due to longer length.
+• Ensure all pie chart pieces share the same center coordinates. Previous pie charts were drawn incorrectly.
 
 **Visual Quality Enhancement**:
 • Use thick, clear strokes for all shapes
@@ -113,7 +116,10 @@ class GenerateManimCode(CodeAgent):
 • Key information highlighted
 • Reasonable use of space
 • Maintain visual balance
-• Use more horizontal layouts to leverage the wider space and minimize positional conflicts between animation components.
+• LLMs excel at animation complexity, not layout complexity.
+    - Use multiple storyboard scenes rather than adding more elements to one animation to avoid layout problems
+    - For animations with many elements, consider layout carefully. For instance, arrange elements horizontally given the canvas's wider width
+    - With four or more horizontal elements, put summary text or similar content at the canvas bottom, this will effectively reduce the cutting off and overlap problems
 
 **Animation Requirements**:
 • Concise and smooth animation effects
@@ -124,8 +130,6 @@ class GenerateManimCode(CodeAgent):
 • Consider using Circumscribe or Indicate to highlight important elements
 
 **Code Style**:
-• Implement directly in Scene class
-• Use VGroup appropriately to organize related elements
 • Clear comments and explanations
 • Avoid overly complex structures
 

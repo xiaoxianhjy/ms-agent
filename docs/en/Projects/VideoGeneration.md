@@ -58,6 +58,12 @@ The default model is currently Qwen-Image. The ModelScope API Key can be applied
 T2I_API_KEY=ms-xxx-xxx
 ```
 
+### Prepare an MLLM to check animation layouts
+
+```shell
+MANIM_TEST_API_KEY=xxx-xxx
+```
+
 2. Prepare your short video materials
 
 You can choose to generate a video with a single sentence, for example:
@@ -141,3 +147,4 @@ Some important parameters are listed below:
 - subtitle_lang: Multilingual subtitle language, if not set, no translation is performed
 - slogan: Displayed on the right side of the screen, generally shows producer name and short video collection
 - fonts: The recommended fonts list
+- manim_auto_test: Use an MLLM to check the layout problems，you can set model-id、api_key and base_url
