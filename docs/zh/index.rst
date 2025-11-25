@@ -2,7 +2,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-MS-Agent DOCUMENTATION
+MS-Agent 官方文档
 ========================
 
 .. toctree::
@@ -29,6 +29,5 @@ MS-Agent DOCUMENTATION
 
    Projects/agent-skills
    Projects/deep-research
-   Projects/code-scratch
    Projects/fin-research
    Projects/video-generation
