@@ -28,7 +28,6 @@ class GenerateImages(CodeAgent):
         super().__init__(config, tag, trust_remote_code, **kwargs)
         self.work_dir = getattr(self.config, 'output_dir', 'output')
         self.num_parallel = getattr(self.config, 't2i_num_parallel', 1)
-        self.style = getattr(self.config.text2image, 't2i_style', 'realistic')
         self.fusion = self.fade
         self.illustration_prompts_dir = os.path.join(self.work_dir,
                                                      'illustration_prompts')
@@ -41,10 +40,14 @@ class GenerateImages(CodeAgent):
             segments = json.load(f)
         illustration_prompts = []
         for i in range(len(segments)):
-            with open(
-                    os.path.join(self.illustration_prompts_dir,
-                                 f'segment_{i+1}.txt'), 'r') as f:
-                illustration_prompts.append(f.read())
+            ilustration_path = os.path.join(self.illustration_prompts_dir,
+                                            f'segment_{i+1}.txt')
+            if self.config.background == 'image' and os.path.exists(
+                    ilustration_path):
+                with open(ilustration_path, 'r') as f:
+                    illustration_prompts.append(f.read())
+            else:
+                illustration_prompts.append(None)
         logger.info('Generating images.')
 
         tasks = [
@@ -53,25 +56,26 @@ class GenerateImages(CodeAgent):
                     prompt) in enumerate(zip(segments, illustration_prompts))
         ]
 
-        # Use ThreadPoolExecutor with asyncio event loop
-        loop = asyncio.get_event_loop()
+        # Use ThreadPoolExecutor for parallel execution
         with ThreadPoolExecutor(max_workers=self.num_parallel) as executor:
             futures = [
-                loop.run_in_executor(executor,
-                                     self._process_single_illustration_static,
-                                     i, segment, prompt, self.config,
-                                     self.images_dir, self.fusion.__name__)
+                executor.submit(self._process_single_illustration_static, i,
+                                segment, prompt, self.config, self.images_dir,
+                                self.fusion.__name__)
                 for i, segment, prompt in tasks
             ]
-            await asyncio.gather(*futures)
+            # Wait for all tasks to complete
+            for future in futures:
+                future.result()
 
         return messages
 
     @staticmethod
     def _process_single_illustration_static(i, segment, prompt, config,
                                             images_dir, fusion_name):
-        """Static method for multiprocessing"""
+        """Static method for thread pool execution"""
         import asyncio
+        # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -88,31 +92,47 @@ class GenerateImages(CodeAgent):
     async def _process_single_illustration_impl(i, segment, prompt, config,
                                                 images_dir, fusion_name):
         """Implementation of single illustration processing"""
-        logger.info(f'Generating image for: {prompt}.')
-        img_path = os.path.join(images_dir, f'illustration_{i + 1}_origin.png')
-        output_path = os.path.join(images_dir, f'illustration_{i + 1}.png')
-        if os.path.exists(output_path):
-            return
-
-        await GenerateImages._generate_images_impl(prompt, img_path, config)
-
-        if fusion_name == 'keep_only_black_for_folder':
-            GenerateImages.keep_only_black_for_folder(img_path, output_path,
-                                                      segment)
+        if config.background != 'image':
+            # Generate a 2000x2000 solid color image
+            logger.info(
+                f'Generating solid color background for segment {i + 1}.')
+            output_path = os.path.join(images_dir, f'illustration_{i + 1}.png')
+            if not os.path.exists(output_path):
+                # Create a 2000x2000 image with the color defined in config.background
+                img = Image.new('RGB', (2000, 2000), config.background)
+                img.save(output_path)
         else:
-            GenerateImages.fade(img_path, output_path, segment)
+            logger.info(f'Generating image for: {prompt}.')
+            img_path = os.path.join(images_dir,
+                                    f'illustration_{i + 1}_origin.png')
+            output_path = os.path.join(images_dir, f'illustration_{i + 1}.png')
+            if os.path.exists(output_path):
+                return
+            if prompt is None:
+                return
 
-        try:
-            os.remove(img_path)
-        except OSError:
-            pass
+            await GenerateImages._generate_images_impl(prompt, img_path,
+                                                       config)
+
+            if fusion_name == 'keep_only_black_for_folder':
+                GenerateImages.keep_only_black_for_folder(
+                    img_path, output_path, segment)
+            else:
+                GenerateImages.fade(img_path, output_path, segment)
+
+            try:
+                os.remove(img_path)
+            except OSError:
+                pass
 
     @staticmethod
     async def _process_foreground_illustration_impl(i, segment, config,
                                                     images_dir):
         """Implementation of foreground illustration processing"""
+        if config.foreground != 'image':
+            return
         logger.info(f'Generating foreground image for: segment {i}.')
-        foreground = segment['foreground']
+        foreground = segment.get('foreground', [])
         work_dir = getattr(config, 'output_dir', 'output')
         illustration_prompts_dir = os.path.join(work_dir,
                                                 'illustration_prompts')
@@ -195,7 +215,12 @@ class GenerateImages(CodeAgent):
                 poll_interval = min(poll_interval * 1.5, max_poll_interval)
 
     @staticmethod
-    def fade(input_image, output_image, segment):
+    def fade(input_image,
+             output_image,
+             segment,
+             fade_factor=0.3,
+             brightness_boost=80,
+             opacity=1.0):
         manim = segment.get('manim')
         img = Image.open(input_image).convert('RGBA')
         if manim:
@@ -203,11 +228,9 @@ class GenerateImages(CodeAgent):
                 'Applying fade effect to background image (Manim animation present)'
             )
             arr = np.array(img, dtype=np.float32)
-            fade_factor = 0.5  # Reduce color intensity to 50%
-            brightness_boost = 60  # Add brightness to lighten the image
             arr[..., :3] = arr[..., :3] * fade_factor + brightness_boost
             arr[..., :3] = np.clip(arr[..., :3], 0, 255)
-            arr[..., 3] = arr[..., 3] * 0.7  # Reduce opacity to 70%
+            arr[..., 3] = arr[..., 3] * opacity
             result = Image.fromarray(arr.astype(np.uint8), mode='RGBA')
             result.save(output_image, 'PNG')
             logger.info(f'Faded background saved to: {output_image}')

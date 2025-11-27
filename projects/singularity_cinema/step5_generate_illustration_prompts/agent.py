@@ -10,7 +10,7 @@ from ms_agent.llm import LLM, Message
 from ms_agent.utils import get_logger
 from omegaconf import DictConfig
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 
 @dataclass
@@ -23,16 +23,13 @@ class Pattern:
 
 class GenerateIllustrationPrompts(CodeAgent):
 
-    system = """You are a scene description expert for AI knowledge science videos. Based on the given knowledge point or storyboard, generate a detailed English description for creating an appropriately styled illustration with an AI/technology theme. Requirements:
+    system = """You are a scene description expert for generating images of short videos. Based on the given knowledge point or storyboard, generate a detailed English description for creating an appropriately styled illustration with an specified theme. Requirements:
 
-- The illustration must depict only ONE scene, not multiple scenes, not comic panels, not split images. Absolutely do NOT use any comic panels, split frames, multiple windows, or any kind of visual separation. Each image is a single, unified scene.
-- All elements must appear together in the same space, with no borders, no frames, and no visual separation.
 - All characters and elements must be fully visible, not cut off or overlapped.
-- Only add clear, readable English text in the image if it is truly needed to express the knowledge point or scene meaning, such as AI, Token, LLM, or any other relevant English word. Do NOT force the use of any specific word in every scene. If no text is needed, do not include any text.
+- Only add clear, readable English text in the image if it is truly needed to express the knowledge point or scene meaning, such as AI, Token, LLM, or any other relevant word. Do NOT force the use of any specific word in every scene. If no text is needed, do not include any text.
 - All text in the image must be clear, readable, and not distorted, garbled, or random.
-- The scene can include rich, relevant, and layered minimalist tech/AI/futuristic elements (e.g., computer, chip, data stream, AI icon, screen, etc.), and simple decorative elements to enhance atmosphere, but do not let elements overlap or crowd together.
 - All elements should be relevant to the main theme and the meaning of the current subtitle segment.
-- The image output should be a square, and its background should be **pure white**
+- The image output should be a square
 - Image content should be uncluttered, with clear individual elements
 - Unless necessary, do not generate text, as text may be generated incorrectly, creating an AI-generated feel
 - The image panel size is 1920*1080, so you need to concentrate elements within a relatively flat image area. Elements at the top and bottom will be cropped
@@ -79,10 +76,12 @@ Only return the prompt itself, do not add any other explainations or marks."""  
                                               illustration_prompts_dir):
         """Static method for multiprocessing"""
         llm = LLM.from_config(config)
-        GenerateIllustrationPrompts._generate_illustration_impl(
-            llm, i, segment, style, system, illustration_prompts_dir)
-        GenerateIllustrationPrompts._generate_foreground_impl(
-            llm, i, segment, system, illustration_prompts_dir)
+        if config.background == 'image':
+            GenerateIllustrationPrompts._generate_illustration_impl(
+                llm, i, segment, style, system, illustration_prompts_dir)
+        if config.foreground == 'image':
+            GenerateIllustrationPrompts._generate_foreground_impl(
+                llm, i, segment, system, illustration_prompts_dir)
 
     @staticmethod
     def _generate_illustration_impl(llm, i, segment, style, system,
@@ -90,7 +89,9 @@ Only return the prompt itself, do not add any other explainations or marks."""  
         if os.path.exists(
                 os.path.join(illustration_prompts_dir, f'segment_{i+1}.txt')):
             return
-        background = segment['background']
+        background = segment.get('background')
+        if not background:
+            return
         manim_query = ''
         if segment.get('manim'):
             manim_query = (
@@ -118,7 +119,7 @@ Only return the prompt itself, do not add any other explainations or marks."""  
     @staticmethod
     def _generate_foreground_impl(llm, i, segment, system,
                                   illustration_prompts_dir):
-        foreground = segment['foreground']
+        foreground = segment.get('foreground', [])
         for idx, _req in enumerate(foreground):
             if os.path.exists(
                     os.path.join(illustration_prompts_dir,
