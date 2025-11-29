@@ -2,8 +2,11 @@ import asyncio
 import dataclasses
 import os
 import re
+import shutil
+import time
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import List, Optional, Set, Tuple
 
@@ -19,12 +22,48 @@ from utils import parse_imports, stop_words
 logger = get_logger()
 
 
+@contextmanager
+def file_lock(lock_dir: str, filename: str, timeout: float = 15.0):
+    os.makedirs(lock_dir, exist_ok=True)
+    lock_file_name = filename.replace(os.sep, '_') + '.lock'
+    lock_file_path = os.path.join(lock_dir, lock_file_name)
+
+    # Acquire lock with timeout
+    start_time = time.time()
+    lock_fd = None
+
+    while True:
+        try:
+            lock_fd = os.open(lock_file_path,
+                              os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(lock_fd, f'{os.getpid()}'.encode())
+            break
+        except FileExistsError:
+            if time.time() - start_time >= timeout:
+                raise TimeoutError(
+                    f'Failed to acquire lock for {filename} after {timeout} seconds'
+                )
+            time.sleep(0.1)  # Wait 100ms before retry
+
+    try:
+        yield
+    finally:
+        # Release lock
+        if lock_fd is not None:
+            os.close(lock_fd)
+        try:
+            os.remove(lock_file_path)
+        except OSError:
+            pass
+
+
 def extract_code_blocks(text: str,
                         target_filename: Optional[str] = None
                         ) -> Tuple[List, str]:
     """Extract code blocks from the given text.
 
-    ```py:a.py
+    <result>py:a.py
+    </result>
 
     Args:
         text: The text to extract code blocks from.
@@ -35,7 +74,7 @@ def extract_code_blocks(text: str,
             0: The extracted code blocks.
             1: The left content of the input text.
     """
-    pattern = r'```[a-zA-Z]*:([^\n\r`]+)\n(.*?)```\n'
+    pattern = r'<result>[a-zA-Z]*:([^\n\r`]+)\n(.*?)</result>'
     matches = re.findall(pattern, text, re.DOTALL)
     result = []
 
@@ -45,7 +84,7 @@ def extract_code_blocks(text: str,
             result.append({'filename': filename, 'code': code.strip()})
 
     if target_filename is not None:
-        remove_pattern = rf'```[a-zA-Z]*:{re.escape(target_filename)}\n.*?```\n'
+        remove_pattern = rf'<result>[a-zA-Z]*:{re.escape(target_filename)}\n.*?</result>'
     else:
         remove_pattern = pattern
 
@@ -75,48 +114,78 @@ class Programmer(LLMAgent):
         self.find_all_files()
 
     def generate_abbr_file(self, file):
+        lock_dir = os.path.join(self.output_dir, 'locks')
         abbr_dir = os.path.join(self.output_dir, 'abbr')
         os.makedirs(abbr_dir, exist_ok=True)
         abbr_file = os.path.join(abbr_dir, file)
-        if os.path.exists(abbr_file):
-            with open(abbr_file, 'r') as f:
-                return f.read()
+        with file_lock(lock_dir, os.path.join('abbr', file)):
+            if os.path.exists(abbr_file):
+                with open(abbr_file, 'r') as f:
+                    return f.read()
 
-        system = """你是一个帮我简化代码并返回缩略的机器人。你缩略的文件会给与另一个LLM用来编写代码，因此你生成的缩略文件需要具有充足的供其他文件依赖的信息。
+            system = """你是一个帮我简化代码并返回缩略的机器人。你缩略的文件会给与另一个LLM用来编写代码，因此你生成的缩略文件需要具有充足的供其他文件依赖的信息。
 
 需要保留的信息：
 1. 代码框架：类名、方法名、方法参数类型，返回值类型
+    * 如果无法找到参数和返回值类型，则分析函数实现，给出该参数或输出结构需要/具有哪些字段
 2. 导入信息：imports依赖
-3. 输出信息：exports导出及导出类型
+3. 输出信息：exports导出及导出类型，注意不要忽略`default`这类关键字，注意命名导出或默认导出方式
 4. 结构体信息：不要缩略任何类或数据结构的名称、字段，如果一个文件包含很多数据结构定义，全部保留
 5. 样式信息：如果是css样式代码，保留每个样式名称
 6. json格式：如果是json，保留结构即可
 7. 仅返回满足要求的缩略信息，不要返回其他无关信息
 
+* 例子：
+    ```xx.ts原始文件
+    import {...} from ...
+    async function func(a: Record<string, any>): Promise<any> {
+        const b = a['some-key'];
+        return b;
+    }
+    export default func;
+    ```
+
+    缩略：
+    ```xx.ts缩略文件
+    ... imports here ...
+    async func(a: Record<string, any>) -> Promise<any>
+        Args: a(Record): keys: some-key, ...
+
+    export default func;
+    ```
+
 你的优化目标：
 1. 【优先】保留充足的信息供其它代码使用
 2. 【其次】保留尽量少的token数量
 """
-        query = f'原始代码：{file}'
-        messages = [
-            Message(role='system', content=system),
-            Message(role='user', content=query),
-        ]
-        stop = self.llm.args['extra_body']['stop_sequences']
-        self.llm.args['extra_body'].pop('stop_sequences')
-        try:
-            response_message = self.llm.generate(messages, stream=False)
-            content = response_message.content.split('\n')
-            if '```' in content[0]:
-                content = content[1:]
-            if '```' in content[-1]:
-                content = content[:-1]
-            os.makedirs(os.path.dirname(abbr_file), exist_ok=True)
-            with open(abbr_file, 'w') as f:
-                f.write('\n'.join(content))
-            return '\n'.join(content)
-        finally:
-            self.llm.args['extra_body']['stop_sequences'] = stop
+            # Read the actual file content
+            source_file_path = os.path.join(self.output_dir, file)
+            if not os.path.exists(source_file_path):
+                return ''
+
+            with open(source_file_path, 'r') as f:
+                file_content = f.read()
+
+            query = f'原始代码文件 {file}:\n{file_content}'
+            messages = [
+                Message(role='system', content=system),
+                Message(role='user', content=query),
+            ]
+            stop = self.llm.args['extra_body']['stop_sequences']
+            self.llm.args['extra_body'].pop('stop_sequences')
+            try:
+                response_message = self.llm.generate(messages, stream=False)
+                content = response_message.content.split('\n')
+                if '```' in content[0]:
+                    content = content[1:]
+                if '```' in content[-1]:
+                    content = content[:-1]
+                os.makedirs(os.path.dirname(abbr_file), exist_ok=True)
+                with open(abbr_file, 'w') as f:
+                    f.write('\n'.join(content))
+                return '\n'.join(content)
+            finally:
+                self.llm.args['extra_body']['stop_sequences'] = stop
 
     def filter_code_files(self):
         code_files = []
@@ -145,18 +214,26 @@ class Programmer(LLMAgent):
 
     async def after_tool_call(self, messages: List[Message]):
         deps_not_exist = False
-        coding_finish = '```' in messages[-1].content and self.llm.args[
-            'extra_body']['stop_sequences'] == []
-        import_finish = '```' in messages[-1].content and self.llm.args[
-            'extra_body']['stop_sequences'] == stop_words
-        if coding_finish:
-            messages[-1].content += '\n```\n'
+        pattern = r'<result>[a-zA-Z]*:([^\n\r`]+)\n(.*?)'
+        matches = re.findall(pattern, messages[-1].content, re.DOTALL)
+        try:
+            code_file = next(iter(matches))[0].strip()
+        except StopIteration:
+            code_file = ''
+        is_config = code_file.endswith('.json') or code_file.endswith(
+            '.yaml') or code_file.endswith('.md')
+        coding_finish = '<result>' in messages[
+            -1].content and '</result>' in messages[-1].content
+        import_finish = '<result>' in messages[-1].content and self.llm.args[
+            'extra_body'][
+                'stop_sequences'] == stop_words and '</result>' not in messages[
+                    -1].content and not is_config
         has_tool_call = len(messages[-1].tool_calls
                             or []) > 0 or messages[-1].role != 'assistant'
         if (not has_tool_call) and import_finish:
             contents = messages[-1].content.split('\n')
-            content = [c for c in contents if '```' in c and ':' in c][0]
-            code_file = content.split('```')[1].split(':')[1].split(
+            content = [c for c in contents if '<result>' in c and ':' in c][0]
+            code_file = content.split('<result>')[1].split(':')[1].split(
                 '\n')[0].strip()
             all_files = parse_imports(code_file, messages[-1].content,
                                       self.output_dir) or []
@@ -207,7 +284,7 @@ class Programmer(LLMAgent):
                     dep_content += (
                         f'Some import files are not in the project plans: {wrong_imports}, '
                         f'check the error now.\n')
-                content = messages.pop(-1).content.split('```')[1]
+                content = messages.pop(-1).content.split('<result>')[1]
                 messages.append(
                     Message(
                         role='user',
@@ -215,8 +292,10 @@ class Programmer(LLMAgent):
                         f'We break your generation to import more relative information. '
                         f'According to your imports, some extra contents manually given here:\n'
                         f'\n{dep_content or "No extra dependencies needed"}\n'
-                        f'Here is the few start lines of your code: {content}\n\n'
-                        f'Now rewrite the full code of {code_file} based on the start lines:\n'
+                        f'Here is the a few start lines of your code: {content}\n\n'
+                        f'Now review your imports in it, correct any error according to the dependencies, '
+                        f'if any data structure undefined/not found, you can go on reading any code files you need, '
+                        f'then rewrite the full code of {code_file} based on the start lines:\n'
                     ))
                 if not wrong_imports:
                     self.llm.args['extra_body']['stop_sequences'] = []
@@ -228,21 +307,33 @@ class Programmer(LLMAgent):
                     path = r['filename']
                     code = r['code']
                     path = os.path.join(self.output_dir, path)
-                    if os.path.exists(path):
+
+                    lock_dir = os.path.join(self.output_dir, 'locks')
+
+                    # Check and write file with lock
+                    with file_lock(lock_dir, r['filename']):
+                        file_exists = os.path.exists(path)
+                        if not file_exists:
+                            os.makedirs(os.path.dirname(path), exist_ok=True)
+                            with open(path, 'w') as f:
+                                f.write(code)
+
+                    # Generate abbreviation outside the lock to avoid nested locking
+                    abbr_content = self.generate_abbr_file(r['filename'])
+
+                    if file_exists:
                         saving_result += (
                             f'The target file exists, cannot override. here is the file abbreviation '
-                            f'content: \n{self.generate_abbr_file(r["filename"])}\n'
-                        )
+                            f'content: \n{abbr_content}\n')
                     else:
-                        os.makedirs(os.path.dirname(path), exist_ok=True)
-                        with open(path, 'w') as f:
-                            f.write(code)
                         saving_result += (
                             f'Save file <{r["filename"]}> successfully\n. here is the file abbreviation '
-                            f'content: \n{self.generate_abbr_file(r["filename"])}\n'
-                        )
-                messages[-1].content = remaining_text + 'Code content removed.'
+                            f'content: \n{abbr_content}\n')
+                messages[-1].content = remaining_text + (
+                    'Code generated here. Content removed to condense messages, '
+                    'check save result for details.')
                 messages.append(Message(role='user', content=saving_result))
+                self.llm.args['extra_body']['stop_sequences'] = stop_words
             self.filter_code_files()
             if not self.code_files:
                 self.runtime.should_stop = True
@@ -355,13 +446,14 @@ class CodingAgent(CodeAgent):
         file_orders = self.construct_file_orders()
         file_relation = OrderedDict()
         self.refresh_file_status(file_relation)
+        lock_dir = os.path.join(self.output_dir, 'locks')
+        shutil.rmtree(lock_dir, ignore_errors=True)
 
         max_workers = 5
 
         for files in file_orders:
             while True:
                 files = self.filter_done_files(files)
-                files = files[:1]
                 files = self.find_description(files)
                 self.construct_file_information(file_relation)
                 if not files:
