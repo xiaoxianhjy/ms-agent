@@ -3,6 +3,7 @@ import asyncio
 import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from io import BytesIO
 from typing import List, Union
 
@@ -11,6 +12,7 @@ import json
 import numpy as np
 from ms_agent.agent import CodeAgent
 from ms_agent.llm import Message
+from ms_agent.tools.image_generator import ImageGenerator
 from ms_agent.utils import get_logger
 from omegaconf import DictConfig
 from PIL import Image
@@ -74,7 +76,6 @@ class GenerateImages(CodeAgent):
     def _process_single_illustration_static(i, segment, prompt, config,
                                             images_dir, fusion_name):
         """Static method for thread pool execution"""
-        import asyncio
         # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -111,9 +112,17 @@ class GenerateImages(CodeAgent):
             if prompt is None:
                 return
 
-            await GenerateImages._generate_images_impl(prompt, img_path,
-                                                       config)
+            _config = deepcopy(config)
+            _config.tools.image_generator = _config.image_generator
+            image_generator = ImageGenerator(_config)
 
+            kwargs = {}
+            if hasattr(_config.image_generator, 'ratio'):
+                kwargs['ratio'] = _config.image_generator.ratio
+            elif hasattr(_config.image_generator, 'size'):
+                kwargs['size'] = _config.image_generator.size
+            _temp_file = await image_generator.generate_image(prompt, **kwargs)
+            shutil.move(_temp_file, img_path)
             if fusion_name == 'keep_only_black_for_folder':
                 GenerateImages.keep_only_black_for_folder(
                     img_path, output_path, segment)
@@ -147,72 +156,20 @@ class GenerateImages(CodeAgent):
                 f'segment_{i+1}_foreground_{idx+1}.txt')
             with open(foreground_prompt_path, 'r') as f:
                 prompt = f.read()
-            await GenerateImages._generate_images_impl(prompt,
-                                                       foreground_image,
-                                                       config)
 
-    @staticmethod
-    async def _generate_images_impl(prompt,
-                                    img_path,
-                                    config,
-                                    negative_prompt=None):
-        """Implementation of image generation"""
-        base_url = config.text2image.t2i_base_url.strip('/')
-        api_key = config.text2image.t2i_api_key
-        model_id = config.text2image.t2i_model
-        assert api_key is not None
+            _config = deepcopy(config)
+            _config.tools.image_generator = _config.image_generator
+            image_generator = ImageGenerator(_config)
 
-        headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        }
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                    f'{base_url}/v1/images/generations',
-                    headers={
-                        **headers, 'X-ModelScope-Async-Mode': 'true'
-                    },
-                    json={
-                        'model': model_id,
-                        'prompt': prompt,
-                        'negative_prompt': negative_prompt or '',
-                        'size': '1664x1664'
-                    }) as resp:
-                resp.raise_for_status()
-                task_id = (await resp.json())['task_id']
-
-            max_wait_time = 600  # 10 min
-            poll_interval = 2
-            max_poll_interval = 10
-            elapsed_time = 0
-
-            while elapsed_time < max_wait_time:
-                await asyncio.sleep(poll_interval)
-                elapsed_time += poll_interval
-
-                async with session.get(
-                        f'{base_url}/v1/tasks/{task_id}',
-                        headers={
-                            **headers, 'X-ModelScope-Task-Type':
-                            'image_generation'
-                        }) as result:
-                    result.raise_for_status()
-                    data = await result.json()
-
-                    if data['task_status'] == 'SUCCEED':
-                        img_url = data['output_images'][0]
-                        async with session.get(img_url) as img_resp:
-                            img_content = await img_resp.read()
-                            image = Image.open(BytesIO(img_content))
-                            image.save(img_path)
-                        return img_path
-
-                    elif data['task_status'] == 'FAILED':
-                        raise RuntimeError(
-                            f'Generate image failed because of error: {data}')
-
-                poll_interval = min(poll_interval * 1.5, max_poll_interval)
+            kwargs = {}
+            if hasattr(_config.image_generator, 'ratio'):
+                kwargs['ratio'] = _config.image_generator.ratio
+            elif hasattr(_config.image_generator, 'size'):
+                kwargs['size'] = _config.image_generator.size
+            _temp_file = await image_generator.generate_image(prompt, **kwargs)
+            if not os.path.exists(_temp_file):
+                raise RuntimeError(f'Failed to generate image: {_temp_file}')
+            shutil.move(_temp_file, foreground_image)
 
     @staticmethod
     def fade(input_image,

@@ -2,6 +2,7 @@
 from abc import abstractmethod
 from typing import Any, Dict
 
+from ms_agent.utils.constants import DEFAULT_OUTPUT_DIR
 from omegaconf import DictConfig
 
 
@@ -15,6 +16,8 @@ class ToolBase:
         self.config = config
         self.exclude_functions = []
         self.include_functions = []
+        self.output_dir = getattr(self.config, 'output_dir',
+                                  DEFAULT_OUTPUT_DIR)
 
     def exclude_func(self, tool_config: DictConfig):
         if tool_config is not None:
